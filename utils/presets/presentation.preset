@@ -1,0 +1,21 @@
+axes.color_cycle:['#3465a4', '#4e9a06', '#cc0000', '#F57900', '#75507b', '#EDD400', '#555753']
+axes.grid:True
+axes.linewidth:0.8
+figure.figsize:[6.0, 4.0]
+font.family:serif
+font.size:10.0
+grid.color:grey
+grid.linewidth:0.4
+image.interpolation:nearest
+image.origin:lower
+legend.borderpad:0.4
+legend.fontsize:10.0
+legend.handlelength:3.5
+legend.handletextpad:0.5
+legend.labelspacing:0.5
+lines.linewidth:0.8
+lines.markersize:3.0
+name:presentation
+patch.linewidth:0.8
+savefig.dpi:300.0
+text.usetex:True

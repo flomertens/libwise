@@ -1,0 +1,28 @@
+axes.color_cycle:['#3465a4', '#4e9a06', '#cc0000', '#F57900', '#75507b', '#EDD400', '#555753']
+axes.grid:True
+axes.labelsize:medium
+axes.linewidth:1.0
+figure.dpi:200.0
+figure.figsize:[11.0, 8.5]
+font.family:serif
+font.serif:['Droid serif']
+font.size:14.0
+grid.color:grey
+grid.linewidth:0.4
+image.interpolation:nearest
+image.origin:lower
+legend.borderpad:0.4
+legend.fontsize:small
+legend.handlelength:3.5
+legend.handletextpad:0.5
+legend.labelspacing:0.3
+lines.antialiased:True
+lines.linewidth:2.0
+lines.markersize:6.0
+name:printer_us_letter
+patch.linewidth:1.6
+savefig.dpi:140
+savefig.facecolor:None
+text.usetex:False
+xtick.labelsize:small
+ytick.labelsize:small

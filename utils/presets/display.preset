@@ -1,0 +1,10 @@
+axes.color_cycle:['#3465a4', '#4e9a06', '#cc0000', '#F57900', '#75507b', '#EDD400', '#555753']
+font.family:sans-serif
+font.size:14.0
+image.interpolation:nearest
+image.origin:lower
+legend.fontsize:medium
+patch.linewidth:1.0
+text.usetex:False
+savefig.dpi:140.0
+axes.grid:True

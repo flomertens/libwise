@@ -1,0 +1,20 @@
+axes.color_cycle:['#3465a4', '#4e9a06', '#cc0000', '#F57900', '#75507b', '#EDD400', '#555753']
+axes.grid:True
+axes.linewidth:0.8
+figure.figsize:[5.4, 3.5]
+font.family:['serif']
+font.size:10.0
+grid.color:grey
+grid.linewidth:0.4
+image.interpolation:none
+image.origin:lower
+legend.borderpad:0.4
+legend.fontsize:small
+legend.handlelength:2.5
+legend.handletextpad:0.5
+legend.labelspacing:0.3
+lines.linewidth:0.8
+lines.markersize:3.0
+name:thesis
+patch.linewidth:0.8
+text.usetex:True
