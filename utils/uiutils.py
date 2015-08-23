@@ -3,12 +3,15 @@ Created on Mar 9, 2012
 
 @author: fmertens
 '''
+import os
 import gtk
 import gobject
 import threading
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg
+
+import imgutils
 
 
 def select_file(parent=None, current_folder=None, action=gtk.FILE_CHOOSER_ACTION_SAVE):
@@ -194,6 +197,9 @@ class RangeParameter(NamedWidgetParameter):
         self.range_widget.connect("value-changed", self.on_changed)
         self.pack_start(self.range_widget, True, False)
 
+        if initial_value is not None:
+            self.set(initial_value, update=False)
+
         self._initialized()
 
     def set_max(self, maxi):
@@ -201,6 +207,9 @@ class RangeParameter(NamedWidgetParameter):
         if self.adj.get_value() > maxi:
             self.range_widget.set_value(maxi)
             self.set(maxi, update=False)
+
+    def get_max(self):
+        return self.adj.get_upper()
 
     def set_min(self, mini):
         self.adj.set_lower(mini)
@@ -258,6 +267,32 @@ class UpdateButton(Button):
 
     def on_clicked(self, bn):
         self.set(1)
+
+
+class OpenImage(Button):
+    
+    def __init__(self, box, experience, img=None):
+        Button.__init__(self, box, experience, "Open image...", on_clicked=self.on_clicked)
+        if img is not None:
+            self.set(img, update=False)
+
+    def set(self, value, update=True):
+        Button.set(self, value, update=update)
+        if not hasattr(value, "file"):
+            label = "DATA"
+        else:
+            label = os.path.basename(value.file)
+        self.bn.set_label(label)
+
+    def on_clicked(self, bn):
+        path = select_file(action=gtk.FILE_CHOOSER_ACTION_OPEN)
+
+        if path is not None:
+            try:
+                img = imgutils.guess_and_open(path)
+                self.set(img)
+            except:
+                pass
 
 
 class Box(gtk.Box):
@@ -480,6 +515,21 @@ class LongRunning(threading.Thread):
             gobject.idle_add(self.cbk, result)
 
 
+class TestExperience(Experience):
+
+    def __init__(self):
+        gui = UI(100, 100, "Wavelet Transform 2D")
+        bv = gui.add_box(VBox())
+        self.ctl = bv.add(HBox())
+
+        OpenImage(self.ctl, self)
+
+        gui.start()
+
+    def update(self, changed):
+        print 'Update:', changed
+
 if __name__ == '__main__':
-    dial = EntryDialog("Test", "value")
-    print dial.run()
+    # dial = EntryDialog("Test", "value")
+    # print dial.run()
+    TestExperience()

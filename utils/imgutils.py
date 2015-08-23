@@ -31,6 +31,7 @@ from astropy.time import TimeDelta
 
 from mpl_toolkits.axisartist.grid_helper_curvelinear import GridHelperCurveLinear
 from mpl_toolkits.axisartist.grid_finder import FormatterPrettyPrint
+import mpl_toolkits.axisartist.angle_helper as angle_helper
 
 import pyregion
 
@@ -173,16 +174,16 @@ def gaussian_cylinder(size, nsigma=None, width=None, angle=None, center_offset=0
     return g
 
 
-# def ellipsoide(size, a, b=None):
-#     if b is None:
-#         b = a
-#     hs = size / 2
-#     a = float(a)
-#     b = float(b)
-#     x, y = np.mgrid[-hs:hs + size % 2, -hs:hs + size % 2]
-#     x = x.astype(np.complex)
-#     z = np.sqrt(1 - x ** 2 / a ** 2 - y ** 2 / b ** 2).real
-#     return z / z.max()
+def ellipsoide(size, a, b=None):
+    if b is None:
+        b = a
+    hs = size / 2
+    a = float(a)
+    b = float(b)
+    x, y = np.mgrid[-hs:hs + size % 2, -hs:hs + size % 2]
+    x = x.astype(np.complex)
+    z = np.sqrt(1 - x ** 2 / a ** 2 - y ** 2 / b ** 2).real
+    return z / z.max()
 
 
 # def paraboloide(size, a, b):
@@ -551,8 +552,8 @@ class WorldCoordinateSystem(object):
 
         # crpix is with origin 1:
         wcs.wcs.crpix = np.array(pix_ref) + np.array([1, 1])
-        wcs.wcs.crval = [0, 0]
-        wcs.wcs.cdelt = [1, 1]
+        wcs.wcs.crval = crval
+        wcs.wcs.cdelt = cdelt
         wcs.wcs.ctype = [xlabel, ylabel]
 
         return WorldCoordinateSystem(wcs)
@@ -655,6 +656,9 @@ class Projection(object):
 
         def inv_transform_xy(x, y):
             return self.transform.p2s(np.array(np.atleast_1d(x, y)).T).T
+
+        # locator = angle_helper.LocatorDMS(6)
+        # formatter = angle_helper.FormatterDMS()
 
         return GridHelperCurveLinear((transform_xy, inv_transform_xy),
                                      grid_locator1=locator,
@@ -1503,7 +1507,6 @@ class Region(object):
 
 
 class ImageRegion(Image):
-
     ''' Represent a portion of an image'''
 
     def __init__(self, img, index, shift=None, copy=False):

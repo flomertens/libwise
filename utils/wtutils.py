@@ -1,6 +1,28 @@
+'''
+Created on Feb 13, 2012
+
+@author: fmertens
+'''
+
+import numpy as np
+
+import nputils
+import imgutils
+import wavelets
+
+
+def get_wavelet_obj(w):
+    if isinstance(w, str):
+        return wavelets.get_wavelet(w)
+    if isinstance(w, wavelets.WaveletBase):
+        return w
+    raise ValueError("w is not a correct wavelet")
+
+
 def dwt(signal, wavelet, boundary, level=None, initial_signal=None, axis=None):
     '''
-    Perform a one level dwt
+    Perform a one level discrete wavelet transform.
+
     Result is len k + l + 1 if len(s) = 2k  and len(hkd) = 2l
         it is len k + l if len(s) = 2k + 1
 
@@ -17,9 +39,10 @@ def dwt(signal, wavelet, boundary, level=None, initial_signal=None, axis=None):
     return (a, d)
 
 
-def idwt(a, d, wavelet, boundary, level=None, axis=None):
+def dwt_inv(a, d, wavelet, boundary, level=None, axis=None):
     '''
-    Perform a one level idwt
+    Perform a one level inverse discrete wavelet transform.
+
     Result len is always 2 * len(a) - len(hkr) + 1
 
     Warning: if len(s) = 2k + 1, then idwt(dwt(s)) will give one element
@@ -43,7 +66,7 @@ def idwt(a, d, wavelet, boundary, level=None, axis=None):
     return c1 + c2
 
 
-def stationary_dwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
+def uwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
     hkd = nputils.atrou(get_wavelet_obj(wavelet).get_dec_hk(), pow(2, level))
     gkd = nputils.atrou(get_wavelet_obj(wavelet).get_dec_gk(), pow(2, level))
 
@@ -53,7 +76,7 @@ def stationary_dwt(signal, wavelet, boundary, level, initial_signal=None, axis=N
     return (a, d)
 
 
-def stationary_idwt(a, d, wavelet, boundary, level, initial_signal=None, axis=None):
+def uwt_inv(a, d, wavelet, boundary, level, initial_signal=None, axis=None):
     hkr = nputils.atrou(get_wavelet_obj(wavelet).get_rec_hk(), pow(2, level))
     gkr = nputils.atrou(get_wavelet_obj(wavelet).get_rec_gk(), pow(2, level))
 
@@ -63,7 +86,7 @@ def stationary_idwt(a, d, wavelet, boundary, level, initial_signal=None, axis=No
     return 1 / 2. * (c1 + c2)
 
 
-def starck_dwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
+def uiwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
     hkd = nputils.atrou(get_wavelet_obj(wavelet).get_dec_hk(), pow(2, level))
 
     a = nputils.convolve(signal, hkd, boundary, axis=axis)
@@ -74,93 +97,37 @@ def starck_dwt(signal, wavelet, boundary, level, initial_signal=None, axis=None)
     return (a, d)
 
 
-# def starck_log_dwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
-#     hkd = nputils.atrou(get_wavelet_obj(wavelet).get_dec_hk(), pow(2, level))
+def uimwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
+    hkd = nputils.atrou(get_wavelet_obj(wavelet).get_dec_hk(), pow(2, level))
 
-#     a = nputils.convolve(signal, hkd, boundary, axis=axis)
+    a = nputils.convolve(signal, hkd, boundary, axis=axis)
 
-#     a = nputils.resize_like(a, signal, 'center')
-#     d = signal - a
+    a = nputils.resize_like(a, signal, 'center')
 
-#     d = np.sign(d) * np.log(np.abs(d))
+    a2 = nputils.convolve(a, hkd, boundary, axis=axis)
+    a2 = nputils.resize_like(a2, signal, 'center')
 
-#     return (a, d)
+    d = signal - a2
 
-
-# def dog_pyramid(signal, wavelet, boundary, level, initial_signal, axis=None):
-#     win_fct = lambda m: spsignal.gaussian(2 * m + 1, 1 + pow(2, level) / 2.3)
-#     if level == 0:
-#         a1 = initial_signal
-#     else:
-#         a1 = nputils.smooth(initial_signal, 1 + pow(2, level), mode='same', window_fct=win_fct)
-#     a2 = nputils.smooth(initial_signal, 1 + pow(2, level) + 2, mode='same', window_fct=win_fct)
-
-#     return a2, a1 - a2
+    return (a, d)
 
 
-# def log_pyramid(signal, wavelet, boundary, level, initial_signal, axis=None):
-#     win_fct = lambda m: spsignal.gaussian(2 * m + 1, 1 + pow(2, level) / 2.3)
-#     a = nputils.smooth(initial_signal, 1 + pow(2, level), mode='same', window_fct=win_fct)
-
-#     d = laplace(a)
-
-#     return a, - d
-
-
-# def median_dwt(signal, wavelet, boundary, level, initial_signal, axis=None):
-#     a = median_filter(initial_signal, size=1 + pow(2, level + 1))
-#     d = signal - a
-#     # signal = signal - minimum_filter(signal, size=1 + pow(2, level + 1))
-
-#     # hkd = nputils.upsample(get_wavelet_obj(wavelet).get_dec_hk(), pow(2, level), False)
-
-#     # a = nputils.convolve(signal, hkd, boundary, axis=axis)
-
-#     # a = nputils.resize_like(a, signal, 'center')
-#     # d = (signal - a).clip(0)
-
-#     return (a, d)
-
-
-# def gaussian_pyramid(signal, wavelet, boundary, level, initial_signal, axis=None):
-#     a = initial_signal
-
-#     d = nputils.smooth(initial_signal, 1 + pow(2, level + 1))
-
-#     return a, d
-
-
-# def laplacien_pyramid(signal, wavelet, boundary, level, initial_signal, axis=None):
-#     # w = [[0.5, 1, 0.5], [1, -6, 1], [0.5, 1, 0.5]]
-#     w = [-1, 2, -1]
-#     w = nputils.upsample(w, pow(2, level))
-
-#     a = nputils.convolve(signal, w)
-#     a = nputils.resize_like(a, signal, 'center')
-#     d = signal - a
-
-#     return a, d
-
-
-def starck_idwt(a, d, wavelet, boundary, level, axis=None):
+def uiwt_inv(a, d, wavelet, boundary, level, axis=None):
     return a + d
-
-
-def wavedec_iter(signal, wavelet, level, boundary="symm",
-                 dec=dwt, axis=None):
-    # max_level = get_wavelet_obj(wavelet).get_max_level(signal)
-    # if level > max_level:
-        # raise ValueError("Level should be < %s" % max_level)
-    a = signal
-    for j in range(int(level)):
-        a, d = dec(a, wavelet, boundary, j, initial_signal=signal, axis=axis)
-        yield d
-    yield a
 
 
 def wavedec(signal, wavelet, level, boundary="symm",
             dec=dwt, axis=None):
-    return list(wavedec_iter(signal, wavelet, level, boundary, dec, axis))
+    # max_level = get_wavelet_obj(wavelet).get_max_level(signal)
+    # if level > max_level:
+        # raise ValueError("Level should be < %s" % max_level)
+    res = []
+    a = signal
+    for j in range(int(level)):
+        a, d = dec(a, wavelet, boundary, j, initial_signal=signal, axis=axis)
+        res.append(d)
+    res.append(a)
+    return res
 
 
 def dogdec(signal, widths=None, angle=0, ellipticity=1, boundary="symm"):
@@ -187,7 +154,7 @@ def pyramiddec(signal, widths=None, angle=0, ellipticity=1, boundary="symm"):
     return [v - k for k, v in  zip(filtered_min, dog)]
 
 
-def waverec(coefs, wavelet, boundary="symm", rec=idwt,
+def waverec(coefs, wavelet, boundary="symm", rec=dwt_inv,
             axis=None, shape=None):
     a = coefs[-1]
     for j in range(len(coefs) - 2, -1, -1):
@@ -196,3 +163,114 @@ def waverec(coefs, wavelet, boundary="symm", rec=idwt,
         # See idwt() for an explaination
         a = nputils.index(a, np.s_[:-1], axis)
     return a
+
+
+def dec2d(img, wavelet, boundary, dec, level):
+    rows_a, rows_d = dec(img, wavelet, boundary, level, axis=0)
+    a, d1 = dec(rows_a, wavelet, boundary, level, axis=1)
+    d2, d3 = dec(rows_d, wavelet, boundary, level, axis=1)
+    return (a, d1, d2, d3)
+
+
+def wavedec2d_iter(img, wavelet, level, boundary="symm", dec=dwt):
+    a = img
+    for j in range(int(level)):
+        a, d1, d2, d3 = dec2d(a, wavelet, boundary, dec, j)
+        yield [d1, d2, d3]
+    yield a
+
+
+def wavedec2d(img, wavelet, level, boundary="symm", dec=dwt):
+    return list(wavedec2d_iter(img, wavelet, level, boundary, dec))
+
+
+def rec2d(a, d, wavelet, boundary, rec, level):
+    d1, d2, d3 = d
+
+    if a.shape != d1.shape:
+        a = nputils.index(a, np.s_[:-1])
+    temp_a = rec(a, d1, wavelet, boundary, level, axis=1)
+    temp_d = rec(d2, d3, wavelet, boundary, level, axis=1)
+    img = rec(temp_a, temp_d, wavelet, boundary, level, axis=0)
+    return img
+
+
+def waverec2d(coefs, wavelet, boundary="symm", rec=dwt_inv, shape=None):
+    a = coefs[-1]
+    for j in range(len(coefs) - 2, -1, -1):
+        a = rec2d(a, coefs[j], wavelet, boundary, rec, j)
+    if shape and shape != a.shape:
+        a = nputils.index(a, np.s_[:-1])
+    return a
+
+
+def dyadic_image(coeffs, shape=None, normalize=True):
+
+    def normalize(a):
+        return (a - a.min()) / float(a.max() - a.min())
+
+    if shape:
+        d = [nputils.resize(coeffs[0], [k / pow(2., len(coeffs) - 1)
+                                        for k in shape])]
+        for l in range(1, len(coeffs)):
+            s = [k / pow(2., len(coeffs) - l) for k in shape]
+            d.append(map(nputils.resize, coeffs[l], [s] * 3))
+    else:
+        shape = coeffs[-1].shape
+        d = coeffs
+        for coef in coeffs[0:-1]:
+            shape = shape + np.array(coef[0].shape)
+
+    if normalize:
+        # normalize aproximation
+        d[-1] = normalize(d[-1])
+        # normalize details
+        for l in range(0, len(coeffs) - 1):
+            d[l] = map(normalize, d[l])
+
+    res = np.ones(shape)
+
+    nputils.fill_at(res, (0, 0), d[-1])
+    (x, y) = d[-1].shape
+    for l in range(len(d) - 2, -1, -1):
+        nputils.fill_at(res, (0, y), d[l][0])
+        nputils.fill_at(res, (x, 0), d[l][1])
+        nputils.fill_at(res, (x, y), d[l][2])
+        (x, y) = d[l][0].shape + np.array((x, y))
+    return res
+
+
+def get_noise_factor_from_background(wavelet, level, dec, background):
+    scales = wavedec(background, wavelet, level, dec=dec)
+    return [scale.std() for scale in scales[:-1]]
+
+
+def get_noise_factor(wavelet, level, dec, beam=None):
+    # n = (250000)
+    n = (200, 200)
+    background = nputils.gaussian_noise(n, 0, 1)
+    if beam is not None:
+        background = beam.convolve(background)
+    return get_noise_factor_from_background(wavelet, level, dec, background)
+
+
+def wave_noise_factor(bg, wavelet, level, dec, beam=None):
+    if isinstance(bg, np.ndarray):
+        scales_noise = get_noise_factor_from_background(wavelet, level, dec, bg)
+    else:
+        scales_noise = bg * np.array(get_noise_factor(wavelet, level, dec, beam=beam))
+    return scales_noise
+
+
+def dec_noise_factor(dec, bg, beam=None, **kargs):
+    if not isinstance(bg, np.ndarray):
+        n = (200, 200)
+        bg = nputils.gaussian_noise(n, 0, bg)
+        if beam is not None:
+            bg = beam.convolve(bg)
+    scales = dec(bg, **kargs)
+    return [scale.std() for scale in scales[:-1]]
+
+
+def dog_noise_factor(bg, widths=None, angle=0, ellipticity=1, beam=None):
+    return dec_noise_factor(dogdec, bg, beam=beam, widths=widths, angle=angle, ellipticity=ellipticity)

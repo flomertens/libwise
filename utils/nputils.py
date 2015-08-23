@@ -8,6 +8,7 @@ Created on Feb 6, 2012
 '''
 
 import os
+import re
 import sys
 import math
 import pickle
@@ -467,7 +468,7 @@ def phase_correlation(x, y):
 
 
 def local_sum(a, shape, mode="same"):
-    """See http://www.idiom.com/~zilla/Papers/nvisionInterface/nip.html """
+    '''See http://www.idiom.com/~zilla/Papers/nvisionInterface/nip.html '''
     # make sure we work with float64 array
     res = resize(a, np.array(a.shape) + 2 *
                  np.array(shape) - 1).astype(np.float64)
@@ -968,13 +969,13 @@ def get_interface(labels, label):
 
 
 def k_sigma_noise_estimation(img, k=3, iteration=3, beam=None):
-    gaussian_noise = gaussian_noise([200, 200], 0, 1)
+    noise = gaussian_noise([200, 200], 0, 1)
     if beam is not None:
-        gaussian_noise = beam.convolve(gaussian_noise)
-        detail = lambda a: a - smooth(a, max(beam.widthx, beam.widthy) * 3)
+        noise = beam.convolve(noise)
+        detail = lambda a: a - smooth(a, max(beam.widthx, beam.widthy) * 3, mode='same')
     else:
-        detail = lambda a: a - smooth(a, 3)
-    sigma_filtered = detail(gaussian_noise).std()
+        detail = lambda a: a - smooth(a, 3, mode='same')
+    sigma_filtered = detail(noise).std()
 
     d = detail(img)
 
@@ -1039,7 +1040,7 @@ def crop_threshold(array, threashold=0, crop_mask=None, output_index=False):
 
 
 def nextpow2(n):
-    """get the next power of 2 that's greater than n"""
+    '''get the next power of 2 that's greater than n'''
     return 2 ** np.ceil(np.log2(n)).astype(np.int)
 
 
@@ -1048,13 +1049,41 @@ def angle(v1, v2):
 
 
 def flip(a):
-    """Inverts an n-dimensional array along each of its axes"""
+    '''Inverts an n-dimensional array along each of its axes'''
     ind = (slice(None, None, -1),) * a.ndim
     return a[ind]
 
 
 def sort_index(list):
     return [i[0] for i in sorted(enumerate(list), key=lambda x:x[1])]
+
+
+def tryint(s):
+    ''' Try to return convert s to an int.
+
+        From: http://nedbatchelder.com/blog/200712/human_sorting.html
+    '''
+    try:
+        return int(s)
+    except:
+        return s
+
+
+def alphanum_key(s):
+    ''' Turn a string into a list of string and number chunks.
+        "z23a" -> ["z", 23, "a"]
+
+        From: http://nedbatchelder.com/blog/200712/human_sorting.html
+    '''
+    return [ tryint(c) for c in re.split('([0-9]+)', s) ]
+
+
+def sort_nicely(l):
+    ''' Sort in place the given list in the way that humans expect.
+
+        From: http://nedbatchelder.com/blog/200712/human_sorting.html
+    '''
+    l.sort(key=alphanum_key)
 
 
 def distance_from_border(point, shape):
@@ -1826,9 +1855,9 @@ def get_next_odd(n):
 
 
 def gaussian_moments(data):
-    """Returns (height, x, y, width_x, width_y)
+    '''Returns (height, x, y, width_x, width_y)
     the gaussian parameters of a 2D distribution by calculating its
-    moments """
+    moments '''
     height = data.max()
     center = np.zeros(data.ndim)
     width = np.zeros(data.ndim)
@@ -1853,7 +1882,7 @@ def gaussian_moments(data):
 
 
 def gaussian_fct(a, height, center, sigma, angle=0):
-    """Returns a gaussian function with the given parameters, angle in radian"""
+    '''Returns a gaussian function with the given parameters, angle in radian'''
 
     def gaussian(indices):
         if is_number(center):
@@ -1877,10 +1906,10 @@ def lorentzian_1d(a, height, center, gamma):
 
 
 def fitgaussian(data, params):
-    """ params: (a, height, center, sigma)
+    ''' params: (a, height, center, sigma)
         center and sigma can be array or number
         
-        Return fitted params, cov"""
+        Return fitted params, cov'''
     if params is None:
         return None
 
@@ -2647,7 +2676,7 @@ def test_upsample():
             return result
 
     def dftups(inp,nor=None,noc=None,usfac=1,roff=0,coff=0):
-        """
+        '''
         *translated from matlab*
         http://www.mathworks.com/matlabcentral/fileexchange/18401-efficient-subpixel-image-registration-by-cross-correlation/content/html/efficient_subpixel_registration.html
 
@@ -2673,7 +2702,7 @@ def test_upsample():
         It achieves this result by computing the DFT in the output array without
         the need to zeropad. Much faster and memory efficient than the
         zero-padded FFT approach if [nor noc] are much smaller than [nr*usfac nc*usfac]
-        """
+        '''
         # this function is translated from matlab, so I'm just going to pretend
         # it is matlab/pylab
         from numpy.fft import ifftshift,fftfreq

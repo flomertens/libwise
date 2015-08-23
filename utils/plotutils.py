@@ -268,8 +268,22 @@ def test_noui():
     os.system("evince %s" % filename)
 
 
+def test_lmc():
+    stack = FigureStack()
+    fig, ax = stack.add_subplots()
+
+    lmc = imgutils.FitsImage(os.path.expanduser("~/data/lmc/lmc_bothun_R_ast.fits"))
+    # lmc = imgutils.FitsImage(os.path.expanduser("~/data/crab/H1-FL.FITS"))
+
+    prj = lmc.get_projection(relative=False, unit=imgutils.u.deg, center='center')
+
+    imshow_image(ax, lmc, projection=prj)
+
+    stack.show()
+
+
 if __name__ == '__main__':
     # test_figure_stack()
-    test_noui()
+    test_lmc()
     # test_markers()
     # test_colors()
