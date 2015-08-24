@@ -323,7 +323,7 @@ class PolyRegionEditor(uiutils.UI):
 
 
 def mask_creator_demo2():
-    fits = "/homes/fmertens/data/crab/H1-FL.FITS"
+    fits = os.path.expanduser("~/data/crab/H1-FL.FITS")
     # fits = "/homes/fmertens/data/3c273/mojave/full_stack_image.fits"
     # fits = "/homes/fmertens/data/m87/mojave/full_stack_image.fits"
 
@@ -346,7 +346,7 @@ def fix_crval(region_file, stack_image_file, fits_new_crval_file):
 
 
 if __name__ == '__main__':
-    # mask_creator_demo2()
-    fix_crval("/homes/fmertens/data/m87/mojave/north_rail.reg", 
-              "/homes/fmertens/data/m87/mojave/full_stack_image.fits",
-              "/homes/fmertens/data/m87/mojave/icn/1228+126.u.2010_09_29.icn.fits")
+    mask_creator_demo2()
+    # fix_crval("/homes/fmertens/data/m87/mojave/north_rail.reg", 
+    #           "/homes/fmertens/data/m87/mojave/full_stack_image.fits",
+    #           "/homes/fmertens/data/m87/mojave/icn/1228+126.u.2010_09_29.icn.fits")

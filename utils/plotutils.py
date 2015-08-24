@@ -269,15 +269,25 @@ def test_noui():
 
 
 def test_lmc():
+    import mpl_toolkits.axisartist.angle_helper as angle_helper
+
     stack = FigureStack()
     fig, ax = stack.add_subplots()
 
     lmc = imgutils.FitsImage(os.path.expanduser("~/data/lmc/lmc_bothun_R_ast.fits"))
     # lmc = imgutils.FitsImage(os.path.expanduser("~/data/crab/H1-FL.FITS"))
 
+    # lmc.rotate(np.radians(60), spline_order=0, smooth_len=0)
+    # lmc.resize([600, 600])
+
     prj = lmc.get_projection(relative=False, unit=imgutils.u.deg, center='center')
 
     imshow_image(ax, lmc, projection=prj)
+    update_grid_helper(ax, tick_formatter1=angle_helper.FormatterHMS(), tick_formatter2=angle_helper.FormatterDMS(),
+                           grid_locator1=angle_helper.LocatorHMS(4), grid_locator2=angle_helper.LocatorDMS(4))
+    # ax._grid_helper.grid_finder.update(tick_formatter1=angle_helper.FormatterDMS(), tick_formatter2=angle_helper.FormatterDMS())
+    # switch_axis(ax)
+    # [k.toggle(all=True) for k in ax.axis.values()]
 
     stack.show()
 
@@ -287,3 +297,4 @@ if __name__ == '__main__':
     test_lmc()
     # test_markers()
     # test_colors()
+    # test_colorbar()

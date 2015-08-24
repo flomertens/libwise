@@ -83,7 +83,7 @@ class DenoiseApp(uiutils.Experience):
         # self.noise_level = uiutils.SpinRangeParameter(self.ctl, self, "Noise:", 0, 100, 5, 20)
         self.noise_level = uiutils.FloatParamater(self.ctl, self, "Noise:", 20, max_lenght=5)
         self.scale = uiutils.SpinRangeParameter(self.ctl, self, "Scale:", 1, 6, 1, 3)
-        self.threashold_factor = uiutils.SpinRangeParameter(self.ctl, self, "Threshold:", 2, 6, 1, 4)
+        self.threashold_factor = uiutils.SpinRangeParameter(self.ctl, self, "Threshold:", 0, 6, 1, 4)
         self.mode = uiutils.ListParameter(self.ctl, self, "Mode:", ["hard", "soft"])
 
         self.ax1, self.ax2, self.ax3 = self.view.figure.subplots(1, 3)
@@ -115,6 +115,7 @@ class DenoiseApp(uiutils.Experience):
         print "Estimated noise:", estimated_noise_sigma
 
         denoised = denoise.do(self.noisy, estimated_noise_sigma, threashold_factor=self.threashold_factor.get())
+        # denoised = nputils.smooth(self.noisy, 9, mode="same", boundary="symm")
 
         return (img, imgutils.Image.from_image(img, self.noisy), imgutils.Image.from_image(img, denoised))
 
@@ -131,8 +132,9 @@ class DenoiseApp(uiutils.Experience):
         plotutils.imshow_image(self.ax3, denoised, title=False, norm=plotutils.Normalize())
         self.ax3.set_title('Denoised')
 
+        self.view.figure.tight_layout()
         self.view.draw()
 
 if __name__ == '__main__':
-    # plt.gray()
+    plt.gray()
     DenoiseApp(imgutils.Image(imgutils.lena()[::-1]))

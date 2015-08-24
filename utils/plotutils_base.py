@@ -120,6 +120,9 @@ def set_grid_helper(axes, grid_helper):
         if grid_helper is not None:
             axes.cla()
 
+def update_grid_helper(axes, **kw):
+    axes._grid_helper.grid_finder.update(**kw)
+
 
 def img_axis(ax):
     ax.axhline(0, ls='-', c='k', lw=2)

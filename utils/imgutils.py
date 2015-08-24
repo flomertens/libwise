@@ -29,8 +29,9 @@ from astropy.coordinates import ICRS
 import astropy.cosmology as cosmology
 from astropy.time import TimeDelta
 
+import matplotlib.ticker as mticker
+
 from mpl_toolkits.axisartist.grid_helper_curvelinear import GridHelperCurveLinear
-from mpl_toolkits.axisartist.grid_finder import FormatterPrettyPrint
 import mpl_toolkits.axisartist.angle_helper as angle_helper
 
 import pyregion
@@ -43,7 +44,7 @@ import signalutils
 
 GALAXY_GIF_PATH = os.path.join(RESSOURCE_PATH, "aa.gif")
 
-# cosmology.default_cosmology.set(cosmology.WMAP9)
+cosmology.default_cosmology.set(cosmology.WMAP9)
 
 
 def p2i(xy_pixel):
@@ -453,13 +454,19 @@ class ScaleTransform(Transform):
 
 class ProjectionSettings(object):
 
-    def __init__(self, unit=u.deg, relative=False, center='pix_ref', distance=None, z=None, cosmo=None):
-        if z is not None:
-            if cosmo is None:
-                cosmo = cosmology.WMAP9
-            dA = cosmo.angular_diameter_distance(z)
-            distance = dA / (2 * np.tan(0.5))
+    def __init__(self, unit=u.deg, relative=False, center='pix_ref', distance=None, z=0, cosmo=None):
+        ''' 
+        center: a pixel coordinate defining the center or one of 'center', 'pix_ref'
+        distance: angular diameter distance or 'proper' distance
 
+        '''
+        if distance is None and z > 0:
+            if cosmo is None:
+                cosmo = cosmology.default_cosmology.get()
+            distance = cosmo.angular_diameter_distance(z)
+
+        self.cosmo = cosmo
+        self.z = z
         self.unit = unit
         self.relative = relative
         self.center = center
@@ -538,9 +545,11 @@ class WorldCoordinateSystem(object):
                 center = np.array(self.shape)[::-1] / 2
             else:
                 center = settings.center
-            projection = RelativeWCSProjection(self, center, settings.unit, distance=settings.distance)
+            projection = RelativeWCSProjection(self, center, settings.unit, 
+                                               distance=settings.distance, z=settings.z)
         else:
-            projection = WCSProjection(self, unit=settings.unit, distance=settings.distance)
+            projection = WCSProjection(self, unit=settings.unit, 
+                                       distance=settings.distance, z=settings.z)
         return projection
 
     def get_header(self):
@@ -557,6 +566,29 @@ class WorldCoordinateSystem(object):
         wcs.wcs.ctype = [xlabel, ylabel]
 
         return WorldCoordinateSystem(wcs)
+
+
+class FormatterPrettyPrint(object):
+    ''' Will go away when matplotlib #4761 is fixed (affect v1.2 to 1.4). 
+        This introduce an other less visible bug.
+        In case it affects you, please use a proper Formatter like FormatterDMS
+    '''
+    def __init__(self, useMathText=True):
+        self._fmt = mticker.ScalarFormatter(useMathText=useMathText, useOffset=False)
+        self._fmt.create_dummy_axis()
+        self._ignore_factor = True
+
+    def __call__(self, direction, factor, values):
+        if not self._ignore_factor:
+            if factor is None:
+                factor = 1.
+            values = [v/factor for v in values]
+        # Avoid duplicate values
+        if len(list(set(values))) != len(values):
+            print direction, values
+        # values = list(set(values))
+        self._fmt.set_locs(values)
+        return [self._fmt(v) for v in values]
 
 
 class Projection(object):
@@ -606,7 +638,7 @@ class Projection(object):
         xy_coord1 = self.p2s(xy_pixel1)
         xy_coord2 = self.p2s(xy_pixel2)
         return nputils.l2norm((xy_coord2 - xy_coord1)) * self.unit
-    
+
     def angular_separation_pa(self, xy_pixel1, xy_pixel2):
         xy_coord1 = self.p2s(xy_pixel1)
         xy_coord2 = self.p2s(xy_pixel2)
@@ -636,7 +668,7 @@ class Projection(object):
     def proper_distance_pa(self, xy_pixel1, xy_pixel2):
         return self.angular_separation_pa(xy_pixel1, xy_pixel2)
 
-    def proper_velocity(self, xy_pixel1, xy_pixel2, time, vector=False):
+    def proper_velocity(self, xy_pixel1, xy_pixel2, time):
         d = self.proper_distance(xy_pixel1, xy_pixel2)
         return d.decompose() / self.__get_delta_time(time)
 
@@ -656,9 +688,6 @@ class Projection(object):
 
         def inv_transform_xy(x, y):
             return self.transform.p2s(np.array(np.atleast_1d(x, y)).T).T
-
-        # locator = angle_helper.LocatorDMS(6)
-        # formatter = angle_helper.FormatterDMS()
 
         return GridHelperCurveLinear((transform_xy, inv_transform_xy),
                                      grid_locator1=locator,
@@ -706,13 +735,14 @@ class AbstractRelativeProjection(Projection):
 
 class WCSProjection(Projection):
 
-    def __init__(self, coordinate_system, distance=None, unit=u.deg):
+    def __init__(self, coordinate_system, distance=None, unit=u.deg, z=0):
         ''' It make a copy of wcs in case image is transformed afterwards. Projection is valid at the time
             it is created. If you make transform to your image, this projection is invalid for the 
             transformed image. '''
         self.wcs = coordinate_system.wcs
         self.unit = unit
         self.distance = distance
+        self.z = z
         self.wcs_transform = WCSTransform(self.wcs)
         xlabel = self.wcs.wcs.ctype[0].split('-')[0]
         ylabel = self.wcs.wcs.ctype[1].split('-')[0]
@@ -784,6 +814,12 @@ class WCSProjection(Projection):
         p2 = self.absolute(xy_pixel2)
         return p1.separation_3d(p2), p1.position_angle(p2)
 
+    def proper_velocity(self, xy_pixel1, xy_pixel2, time):
+        return Projection.proper_velocity(self, xy_pixel1, xy_pixel2, time) * (1 + self.z)
+
+    def proper_velocity_vector(self, xy_pixel1, xy_pixel2, time):
+        return Projection.proper_velocity_vector(self, xy_pixel1, xy_pixel2, time) * (1 + self.z)
+
     def update(self):
         ''' Update due to wcs change '''
         self.set_transform(self.build_transform())
@@ -794,9 +830,9 @@ class WCSProjection(Projection):
 
 class RelativeWCSProjection(AbstractRelativeProjection, WCSProjection):
 
-    def __init__(self, coordinate_system, xy_pixel_center, unit=u.deg, distance=None):
+    def __init__(self, coordinate_system, xy_pixel_center, unit=u.deg, distance=None, z=0):
         self.xy_pixel_center = xy_pixel_center
-        WCSProjection.__init__(self, coordinate_system, distance, unit)
+        WCSProjection.__init__(self, coordinate_system, distance=distance, unit=unit, z=z)
         self.xlabel = "Relative " + self.xlabel
         self.ylabel = "Relative " + self.ylabel
 
@@ -989,8 +1025,9 @@ class Image(object):
         array, index = nputils.zoom(img, np.array(center), shape, pad=False, output_index=True)
         return ImageRegion(img, index)
 
-    def resize(self, shape):
-        self.data, padding_index, array_index = nputils.resize(self.data, shape, output_index=True)
+    def resize(self, shape, padding_mode="center"):
+        self.data, padding_index, array_index = nputils.resize(self.data, shape, 
+                    padding_mode=padding_mode, output_index=True)
         def i(n):
             if n is None:
                 return 0
@@ -1200,11 +1237,6 @@ class FitsImage(Image):
 
     def get_coordinate_system(self):
         return WorldCoordinateSystem(self.wcs, self.data.shape)
-
-    def get_coord(self, xy_pix, distance=None):
-        projection = WCSProjection(WorldCoordinateSystem(self.wcs))
-        ra, dec = projection.p2s(xy_pix)
-        return ICRS(ra, dec, unit=(u.degree, u.degree), distance=distance)
 
     def get_title(self):
         title = []
@@ -1725,7 +1757,7 @@ def test_image_region():
     stack = plotutils.FigureStack()
 
     fig, ax = stack.add_subplots("test")
-    ax.imshow(img.get_data())
+    ax.imshow(img.get_region())
 
     stack.show()
 
