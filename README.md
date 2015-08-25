@@ -1,1 +1,1 @@
-# wise-utils
+# libwise
