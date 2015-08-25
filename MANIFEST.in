@@ -1,0 +1,3 @@
+include *.md
+recursive-include libwise/presets *.preset 
+recursive-include libwise/ressource *.preset *.png *.svg *.gif

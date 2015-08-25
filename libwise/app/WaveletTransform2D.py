@@ -89,7 +89,7 @@ if __name__ == '__main__':
     # nputils.fill_at(img, [150, 150], e1)
     # nputils.fill_at(img, [180, 180], e2)
     # nputils.fill_at(img, [200, 250], e3)
-    # nputils.fill_at(img, [350, 350], e4)
+    # nputils.fill_at(img, [350, 350], e4)s
 
     # img = get_img([250, 250], [250, 250])
 
