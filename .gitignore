@@ -1,6 +1,8 @@
 *.sublime-project
 *.sublime-workspace
 build/
+dist/
+*.egg-info
 *.pyc
 libwise/data/*.data
 .nfs*
