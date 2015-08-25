@@ -8,13 +8,13 @@ import waveletsui
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import imgutils, plotutils, nputils, wtutils, wavelets, uiutils
+from libwise import imgutils, plotutils, nputils, wtutils, wavelets, uiutils
 
 
 class Denoise:
 
-    def __init__(self, wavelet, level, boundary="symm",
-                 dec=wtutils.uiwt, rec=wtutils.uiwt_inv, mode="hard"):
+    def __init__(self, wavelet='db1', level=3, boundary="symm",
+                 dec=wtutils.uwt, rec=wtutils.uwt_inv, mode="hard"):
         self.wavelet = wavelet
         self.level = level
         self.boundary = boundary
@@ -51,6 +51,9 @@ class Denoise:
 
     def do(self, img, noise_sigma=None, noise=None, threashold_factor=4):
         print "Denoising..."
+        if noise is None and noise_sigma is None:
+            noise_sigma = nputils.k_sigma_noise_estimation(img)
+
         res = self.decompose(img)
 
         for (i, frame) in enumerate(itertools.chain(*res[:-1])):
@@ -65,7 +68,7 @@ class Denoise:
         return denoised
 
 
-class DenoiseApp(uiutils.Experience):
+class WaveletDenoise(uiutils.Experience):
 
     def __init__(self, img):
         wavelet_families=wavelets.get_all_wavelet_families()

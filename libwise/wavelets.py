@@ -10,7 +10,7 @@ import numpy as np
 import wavelets_coefficients as wc
 from scipy.signal import cascade
 
-from utils import nputils
+from libwise import nputils
 
 
 class WaveletFamilyBase(object):

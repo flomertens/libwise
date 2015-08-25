@@ -5,7 +5,7 @@ Created on Feb 21, 2012
 '''
 
 import gtk
-from utils import uiutils
+from libwise import uiutils
 
 
 class WaveletSelector(uiutils.WidgetParameter):

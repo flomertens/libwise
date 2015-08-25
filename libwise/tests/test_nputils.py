@@ -7,9 +7,9 @@ import datetime
 import numpy as np
 from scipy.signal import convolve2d
 
-from utils import nputils
-from utils import nputils_c
-from utils.nputils import assert_equal, assert_raise
+from libwise import nputils
+from libwise import nputils_c
+from libwise.nputils import assert_equal, assert_raise
 
 
 def _a(x):

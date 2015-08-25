@@ -2812,7 +2812,7 @@ def test_upsample():
 
 
 def test_zero_ssd():
-    from utils import imgutils, plotutils
+    from libwise import imgutils, plotutils
     x = imgutils.gaussian(50, width=5, center=[20, 20]) * 1.5
     y = imgutils.gaussian(50, width=5, center=[25, 25])
 
@@ -2848,7 +2848,7 @@ def test_zero_ssd():
 
 
 def test_find_peak():
-    from utils import imgutils, plotutils
+    from libwise import imgutils, plotutils
 
     stack = plotutils.FigureStack()
     fig, axs = stack.add_subplots("test", n=2, reshape=False)
@@ -2871,7 +2871,7 @@ def test_permutations():
 
 
 def test_local_max():
-    from utils import imgutils, plotutils
+    from libwise import imgutils, plotutils
 
     heights = np.random.uniform(5, 10, (3))
     widths = np.random.uniform(5, 10, (3, 2))

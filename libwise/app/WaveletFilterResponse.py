@@ -1,12 +1,12 @@
 import waveletsui
 import numpy as np
 
-from utils import signalutils, uiutils, plotutils, nputils, wtutils, wavelets
+from libwise import signalutils, uiutils, plotutils, nputils, wtutils, wavelets
 
 
 class WaveletFilterResponse(uiutils.Experience):
 
-    def __init__(self, wavelet_families):
+    def __init__(self, wavelet_families=wavelets.get_all_wavelet_families()):
         gui = uiutils.UI(900, 500, "Wavelet Filter Bank Response")
 
         box = gui.add_box(uiutils.VBox())
@@ -120,4 +120,4 @@ class WaveletFilterResponse(uiutils.Experience):
 
 
 if __name__ == '__main__':
-    win = WaveletFilterResponse(wavelets.get_all_wavelet_families())
+    win = WaveletFilterResponse()

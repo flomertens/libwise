@@ -1,5 +1,5 @@
 import numpy as np
-from utils import imgutils, nputils
+from libwise import imgutils, nputils
 
 
 def test_gaussien_cylinder_no_arg():

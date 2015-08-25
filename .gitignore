@@ -2,7 +2,7 @@
 *.sublime-workspace
 build/
 *.pyc
-utils/data/*.data
+libwise/data/*.data
 .nfs*
 .csync*
 .owncloudsync*

@@ -8,12 +8,12 @@ import pyfits
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import nputils, uiutils, imgutils, plotutils, wtutils, wavelets
+from libwise import nputils, uiutils, imgutils, plotutils, wtutils, wavelets
 
 import waveletsui
 
 
-class Wavelet2D(uiutils.Experience):
+class WaveletTransform2D(uiutils.Experience):
 
     def __init__(self, img, wavelet_families=wavelets.get_all_wavelet_families()):
         gui = uiutils.UI(500, 500, "Wavelet Transform 2D")
@@ -100,4 +100,9 @@ if __name__ == '__main__':
 
     # img = imgutils.lena()[::-1]
 
-    w = Wavelet2D(imgutils.Image(img))
+    # from WaveletDenoise import Denoise
+    # denoiser = Denoise('db1', 3, dec=wtutils.uwt, rec=wtutils.uwt_inv)
+    # estimated_noise_sigma = nputils.k_sigma_noise_estimation(img)
+    # denoised = denoiser.do(img, noise_sigma=estimated_noise_sigma, threashold_factor=3)
+
+    w = WaveletTransform2D(imgutils.Image(denoised))

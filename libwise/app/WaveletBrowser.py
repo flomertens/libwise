@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-from utils import uiutils, wavelets, plotutils
+from libwise import uiutils, wavelets, plotutils
 import waveletsui
 import numpy as np
 
 
 class WaveletBrowser(uiutils.Experience):
 
-    def __init__(self, wavelet_families):
+    def __init__(self, wavelet_families=wavelets.get_all_wavelet_families()):
         gui = uiutils.UI(900, 500, "Wavelet Browser")
 
         box = gui.add_box(uiutils.VBox())
@@ -69,4 +69,4 @@ class WaveletBrowser(uiutils.Experience):
         self.view.draw()
 
 if __name__ == '__main__':
-    win = WaveletBrowser(wavelets.get_all_wavelet_families())
+    win = WaveletBrowser()

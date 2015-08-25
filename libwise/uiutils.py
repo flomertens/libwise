@@ -274,6 +274,8 @@ class OpenImage(Button):
     def __init__(self, box, experience, img=None):
         Button.__init__(self, box, experience, "Open image...", on_clicked=self.on_clicked)
         if img is not None:
+            if not isinstance(img, imgutils.Image):
+                img = imgutils.Image(img)
             self.set(img, update=False)
 
     def set(self, value, update=True):

@@ -7,8 +7,8 @@ Created on Feb 15, 2012
 import pywt
 import numpy as np
 
-from utils import nputils, wtutils, wavelets
-from utils.nputils import assert_equal
+from libwise import nputils, wtutils, wavelets
+from libwise.nputils import assert_equal
 
 
 def get_all_orthos_wavelets():

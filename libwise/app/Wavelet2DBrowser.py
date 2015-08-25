@@ -4,13 +4,13 @@ Created on Feb 21, 2012
 @author: fmertens
 '''
 
-from utils import uiutils, wavelets, plotutils
+from libwise import uiutils, wavelets, plotutils
 import waveletsui
 
 
 class Wavelet2DBrowser(uiutils.Experience):
 
-    def __init__(self, wavelet_families):
+    def __init__(self, wavelet_families=wavelets.get_all_wavelet_families()):
         gui = uiutils.UI(900, 500, "Wavelet Browser")
 
         box = gui.add_box(uiutils.VBox())
@@ -52,4 +52,4 @@ class Wavelet2DBrowser(uiutils.Experience):
         self.view.draw()
 
 if __name__ == '__main__':
-    win = Wavelet2DBrowser(wavelets.get_all_wavelet_families())
+    win = Wavelet2DBrowser()

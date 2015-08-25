@@ -6,12 +6,12 @@ Created on Mar 14, 2012
 import numpy as np
 import waveletsui
 
-from utils import uiutils, plotutils, signalutils, nputils, wavelets, wtutils
+from libwise import uiutils, plotutils, signalutils, nputils, wavelets, wtutils
 
 
-class Wavelet(uiutils.Experience):
+class WaveletTransform(uiutils.Experience):
 
-    def __init__(self, wavelet_families, t, x):
+    def __init__(self, t, x, wavelet_families=wavelets.get_all_wavelet_families()):
         gui = uiutils.UI(500, 500, "Wavelet Transform")
         bv = gui.add_box(uiutils.VBox())
         self.ctl = bv.add(uiutils.HBox())
@@ -73,9 +73,9 @@ if __name__ == '__main__':
 
     x = np.zeros(500)
     center = 20
-    for width in [2, 4, 8, 16, 32, 64]:
+    for width in [2, 4, 8, 16, 32, 50]:
         x += signalutils.gaussian(500, width=width, center=center)
-        center += 8 * width
+        center += min(10 * width, 120)
 
     # g1 = signalutils.gaussian(500, width=20, center_offset=-150)
     # # x += g1
@@ -84,4 +84,4 @@ if __name__ == '__main__':
 
     # x = np.cos(np.arange(100) / 2)
 
-    w = Wavelet(wavelets.get_all_wavelet_families(), np.arange(500), x)
+    w = WaveletTransform(np.arange(500), x)

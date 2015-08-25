@@ -1747,7 +1747,7 @@ def test_save_fits():
 
 
 def test_image_region():
-    from utils import imgutils, plotutils
+    from libwise import imgutils, plotutils
     lena = imgutils.lena()[::-1]
 
     img = ImageRegion(lena, [110, 120, 260, 280])
