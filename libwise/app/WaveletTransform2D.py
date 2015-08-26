@@ -32,6 +32,8 @@ class WaveletTransform2D(uiutils.Experience):
         self.dec = uiutils.ListParameter(self.ctl, self, "Transform:", decs)
         self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts)
 
+        self.add_spinner(self.ctl)
+
         self.ax1, self.ax2 = self.view.figure.subplots(1, 2)
 
         self.current_wavedec = None
@@ -105,4 +107,4 @@ if __name__ == '__main__':
     # estimated_noise_sigma = nputils.k_sigma_noise_estimation(img)
     # denoised = denoiser.do(img, noise_sigma=estimated_noise_sigma, threashold_factor=3)
 
-    w = WaveletTransform2D(imgutils.Image(denoised))
+    w = WaveletTransform2D(imgutils.Image(img))

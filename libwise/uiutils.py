@@ -485,11 +485,21 @@ class EntryDialog(gtk.Dialog):
 
 class Experience():
 
+    def add_spinner(self, box):
+        self.spinner = gtk.Spinner()
+        box.add(self.spinner)
+        gobject.idle_add(self.spinner.hide)
+
     def do_update(self, parameter_changed=None):
         res = self.before_update(parameter_changed)
+
+        if hasattr(self, 'spinner'):
+            self.spinner.start()
+            self.spinner.show()
+
         if res is not False:
             thread = LongRunning(self.update, (parameter_changed), dict(),
-                                 self.after_update)
+                                 self.__after_update)
             thread.start()
 
     def before_update(self, changed):
@@ -497,6 +507,12 @@ class Experience():
 
     def update(self, changed):
         pass
+
+    def __after_update(self, result):
+        if hasattr(self, 'spinner'):
+            self.spinner.stop()
+            self.spinner.hide()
+        self.after_update(result)
 
     def after_update(self, result):
         pass

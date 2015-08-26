@@ -89,6 +89,8 @@ class WaveletDenoise(uiutils.Experience):
         self.threashold_factor = uiutils.SpinRangeParameter(self.ctl, self, "Threshold:", 0, 6, 1, 4)
         self.mode = uiutils.ListParameter(self.ctl, self, "Mode:", ["hard", "soft"])
 
+        self.add_spinner(self.ctl)
+
         self.ax1, self.ax2, self.ax3 = self.view.figure.subplots(1, 3)
 
         self.noisy = None
@@ -140,4 +142,4 @@ class WaveletDenoise(uiutils.Experience):
 
 if __name__ == '__main__':
     plt.gray()
-    DenoiseApp(imgutils.Image(imgutils.lena()[::-1]))
+    WaveletDenoise(imgutils.Image(imgutils.lena()[::-1]))

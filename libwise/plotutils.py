@@ -293,8 +293,8 @@ def test_lmc():
 
 
 if __name__ == '__main__':
-    # test_figure_stack()
-    test_lmc()
+    test_figure_stack()
+    # test_lmc()
     # test_markers()
     # test_colors()
     # test_colorbar()

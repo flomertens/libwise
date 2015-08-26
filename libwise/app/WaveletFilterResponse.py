@@ -22,6 +22,8 @@ class WaveletFilterResponse(uiutils.Experience):
 
         self.dx = uiutils.SpinRangeParameter(ctl, self, "dx", -10, 10, 1, 0)
 
+        self.add_spinner(ctl)
+
         gui.start()
 
     def do_plot(self, figure, result):

@@ -14,6 +14,7 @@ class WaveletTransform(uiutils.Experience):
     def __init__(self, t, x, wavelet_families=wavelets.get_all_wavelet_families()):
         gui = uiutils.UI(500, 500, "Wavelet Transform")
         bv = gui.add_box(uiutils.VBox())
+
         self.ctl = bv.add(uiutils.HBox())
         self.view = bv.add(plotutils.BaseCustomCanvas(), True)
         bv.add(plotutils.ExtendedNavigationToolbar(self.view, gui))
@@ -26,6 +27,8 @@ class WaveletTransform(uiutils.Experience):
 
         self.dec = uiutils.ListParameter(self.ctl, self, "Transform:", decs)
         self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts)
+
+        self.add_spinner(self.ctl)
 
         self.x = x
         self.t = t
