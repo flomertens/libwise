@@ -10,9 +10,7 @@ import os
 
 import numpy as np
 
-import uiutils
-import imgutils
-import plotutils
+from libwise import uiutils, imgutils, plotutils
 
 import gtk
 import pyregion
@@ -20,70 +18,6 @@ import pyregion
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.mlab import dist_point_to_segment
-
-
-class PolyRegion(object):
-
-    def __init__(self, vertices=None, color='blue', title=''):
-        self.vertices = vertices
-        if color == "" or color is None:
-            color = 'blue'
-        self.color = color
-        self.title = title
-
-    def shift(self, delta_xy_pix):
-        self.vertices = [np.array(p) - delta_xy_pix for p in self.vertices]
-
-    @staticmethod
-    def default_from_ax(ax, title="", color="blue"):
-        xlims = ax.get_xlim()
-        ylims = ax.get_ylim()
-        w = np.diff(xlims)
-        h = np.diff(ylims)
-        x1, x2 = xlims + w // 4 * np.array([1, -1])
-        y1, y2 = ylims + h // 4 * np.array([1, -1])
-        vertices = ((x1, y1), (x1, y2), (x2, y2), (x2, y1))
-
-        return PolyRegion(vertices, color, title)
-
-    @staticmethod
-    def from_file(filename, coordinate_system):
-        region = pyregion.open(filename)
-        assert len(region) == 1
-        shape = region[0]
-        assert shape.name == "polygon"
-        vertices = zip(shape.coord_list[::2], shape.coord_list[1::2])
-        if coordinate_system is not None:
-            prj_settings = imgutils.ProjectionSettings()
-            prj = coordinate_system.get_projection(prj_settings)
-            vertices = prj.s2p(vertices)
-        title = shape.attr[1].get("text")
-        color = shape.attr[1].get("color")
-
-        return PolyRegion(vertices=vertices, color=color, title=title)
-
-    def to_file(self, filename, coordinate_system):
-        prj_settings = imgutils.ProjectionSettings()
-        prj = coordinate_system.get_projection(prj_settings)
-        # skip last point
-        if np.array_equal(self.vertices[-1], self.vertices[0]):
-            points = prj.p2s(self.vertices[:-1])
-        else:
-            points = prj.p2s(self.vertices)
-
-        if isinstance(coordinate_system, imgutils.WorldCoordinateSystem):
-            coord_format = "fk5"
-        else:
-            coord_format = "image"
-
-        content = ["# Region file format: DS9 version 4.1\n",
-                   "global text={%s} color=%s\n" % (self.title, self.color),
-                   "%s\n" % coord_format,
-                   "polygon(%s)\n" % ", ".join(["%s" %k for k in points.flatten()])]
-
-        if filename is not None:
-            with open(filename, "w") as fd:
-                fd.writelines(content)
 
 
 class PolyRegionEditor(uiutils.UI):
@@ -151,7 +85,7 @@ class PolyRegionEditor(uiutils.UI):
         self.canvas.draw()
 
     def load_default(self):
-        default_poly_region = PolyRegion.default_from_ax(self.ax)
+        default_poly_region = imgutils.PolyRegion.default_from_ax(self.ax)
         self.load_poly_region(default_poly_region)
 
     def start(self):
@@ -190,7 +124,7 @@ class PolyRegionEditor(uiutils.UI):
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN)
         if filename is not None:
             try:
-                poly_region = PolyRegion.from_file(filename, self.img.get_coordinate_system())
+                poly_region = imgutils.PolyRegion.from_file(filename, self.img.get_coordinate_system())
                 self.load_poly_region(poly_region)
             except:
                 msg = "Failed to load region %s" % filename
@@ -322,7 +256,7 @@ class PolyRegionEditor(uiutils.UI):
         return ind
 
 
-def mask_creator_demo2():
+def test_editor():
     fits = os.path.expanduser("~/data/crab/H1-FL.FITS")
     # fits = "/homes/fmertens/data/3c273/mojave/full_stack_image.fits"
     # fits = "/homes/fmertens/data/m87/mojave/full_stack_image.fits"
@@ -336,7 +270,7 @@ def mask_creator_demo2():
 def fix_crval(region_file, stack_image_file, fits_new_crval_file):
     stack_image = imgutils.FitsImage(stack_image_file)
     fits_new_crval = imgutils.FitsImage(fits_new_crval_file)
-    region = PolyRegion.from_file(region_file, stack_image.get_coordinate_system())
+    region = imgutils.PolyRegion.from_file(region_file, stack_image.get_coordinate_system())
     prj1 = stack_image.get_projection(relative=False)
     prj2 = fits_new_crval.get_projection(relative=False)
 
@@ -346,7 +280,7 @@ def fix_crval(region_file, stack_image_file, fits_new_crval_file):
 
 
 if __name__ == '__main__':
-    mask_creator_demo2()
+    test_editor()
     # fix_crval("/homes/fmertens/data/m87/mojave/north_rail.reg", 
     #           "/homes/fmertens/data/m87/mojave/full_stack_image.fits",
     #           "/homes/fmertens/data/m87/mojave/icn/1228+126.u.2010_09_29.icn.fits")

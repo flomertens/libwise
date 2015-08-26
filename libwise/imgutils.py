@@ -1494,6 +1494,70 @@ class Mask(Image):
         return self.get_mask().sum()
 
 
+class PolyRegion(object):
+
+    def __init__(self, vertices=None, color='blue', title=''):
+        self.vertices = vertices
+        if color == "" or color is None:
+            color = 'blue'
+        self.color = color
+        self.title = title
+
+    def shift(self, delta_xy_pix):
+        self.vertices = [np.array(p) - delta_xy_pix for p in self.vertices]
+
+    @staticmethod
+    def default_from_ax(ax, title="", color="blue"):
+        xlims = ax.get_xlim()
+        ylims = ax.get_ylim()
+        w = np.diff(xlims)
+        h = np.diff(ylims)
+        x1, x2 = xlims + w // 4 * np.array([1, -1])
+        y1, y2 = ylims + h // 4 * np.array([1, -1])
+        vertices = ((x1, y1), (x1, y2), (x2, y2), (x2, y1))
+
+        return PolyRegion(vertices, color, title)
+
+    @staticmethod
+    def from_file(filename, coordinate_system):
+        region = pyregion.open(filename)
+        assert len(region) == 1
+        shape = region[0]
+        assert shape.name == "polygon"
+        vertices = zip(shape.coord_list[::2], shape.coord_list[1::2])
+        if coordinate_system is not None:
+            prj_settings = imgutils.ProjectionSettings()
+            prj = coordinate_system.get_projection(prj_settings)
+            vertices = prj.s2p(vertices)
+        title = shape.attr[1].get("text")
+        color = shape.attr[1].get("color")
+
+        return PolyRegion(vertices=vertices, color=color, title=title)
+
+    def to_file(self, filename, coordinate_system):
+        prj_settings = imgutils.ProjectionSettings()
+        prj = coordinate_system.get_projection(prj_settings)
+        # skip last point
+        if np.array_equal(self.vertices[-1], self.vertices[0]):
+            points = prj.p2s(self.vertices[:-1])
+        else:
+            points = prj.p2s(self.vertices)
+
+        if isinstance(coordinate_system, imgutils.WorldCoordinateSystem):
+            coord_format = "fk5"
+        else:
+            coord_format = "image"
+
+        content = ["# Region file format: DS9 version 4.1\n",
+                   "global text={%s} color=%s\n" % (self.title, self.color),
+                   "%s\n" % coord_format,
+                   "polygon(%s)\n" % ", ".join(["%s" %k for k in points.flatten()])]
+
+        if filename is not None:
+            with open(filename, "w") as fd:
+                fd.writelines(content)
+
+
 class Region(object):
     ''' Wrapper for pyregion ShapeList, so that we can deal directly with CoordinateSystsem'''
 
@@ -1518,9 +1582,7 @@ class Region(object):
         return self.pyregion_cache[coordinate_system]
 
     def get_poly_region(self, coordinate_system):
-        import poly_editor
-
-        return poly_editor.PolyRegion.from_file(self.filename, coordinate_system)
+        return PolyRegion.from_file(self.filename, coordinate_system)
 
     def get_name(self):
         ''' Assuming a single shape region '''
