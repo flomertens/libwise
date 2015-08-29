@@ -481,13 +481,16 @@ class AbstractCoordinateSystem(object):
 
 class PixelCoordinateSystem(object):
 
-    def __init__(self, shape=None, pix_ref=None, equ_unit=u.mas):
+    def __init__(self, shape=None, pix_ref=None, pix_unit=u.pix):
         self.shape = shape
         self.pix_ref = pix_ref
-        self.equ_unit = equ_unit
+        self.pix_unit = pix_unit
 
-    def get_equ_unit(self):
-        return self.equ_unit
+    def get_pix_unit(self):
+        return self.pix_unit
+
+    def set_pix_unit(self, pix_unit):
+        self.pix_unit = pix_unit
 
     def get_projection(self, settings):
         if settings.relative:
@@ -509,12 +512,17 @@ class PixelCoordinateSystem(object):
     def get_header(self):
         wcs = pywcs.WCS(naxis=2)
 
-        scale = self.equ_unit.to(u.deg)
-
         wcs.wcs.crpix = np.array(self.pix_ref) + np.array([1, 1])
         wcs.wcs.crval = [0, 0]
-        wcs.wcs.cdelt = [scale, scale]
         wcs.wcs.ctype = ['X', 'Y']
+
+        if self.pix_unit is u.pix:
+            wcs.wcs.cunit = ['pixel', 'pixel']
+            scale = 1
+        else:
+            scale = self.pix_unit.to(u.deg)
+
+        wcs.wcs.cdelt = [scale, scale]
 
         return WorldCoordinateSystem(wcs, shape=self.shape), wcs.to_header()
 
@@ -848,14 +856,14 @@ class PixelProjection(Projection):
     def __init__(self, coordinate_system=None):
         if coordinate_system is None:
             coordinate_system = PixelCoordinateSystem()
-        unit = coordinate_system.get_equ_unit()
+        unit = coordinate_system.get_pix_unit()
         Projection.__init__(self, IdentityTransform(), "X", "Y", unit, coordinate_system)
 
 
 class RelativePixelProjection(AbstractRelativeProjection, Projection):
 
     def __init__(self, coordinate_system, xy_pixel_center):
-        unit = coordinate_system.get_equ_unit()
+        unit = coordinate_system.get_pix_unit()
         Projection.__init__(self, ScaleTransform(1, np.array(xy_pixel_center), 1), "X", "Y", unit, coordinate_system)
 
 
@@ -942,7 +950,7 @@ class Image(object):
 
     EPOCH_COUNTER = 0
 
-    def __init__(self, data, epoch=None, beam=None, pix_ref=None):
+    def __init__(self, data, epoch=None, beam=None, pix_ref=None, pix_unit=u.pix):
         self.data = data
         if beam is None:
             beam = IdleBeam()
@@ -957,6 +965,7 @@ class Image(object):
             self.epoch = epoch
         if self.beam is None:
             self.beam = IdleBeam()
+        self.pix_unit = pix_unit
 
     def __add__(self, other):
         if isinstance(other, Image):
@@ -990,7 +999,7 @@ class Image(object):
         return ImageMeta(self.get_epoch(), self.get_coordinate_system(), self.get_beam())
 
     def get_coordinate_system(self):
-        return PixelCoordinateSystem(self.data.shape, self.pix_ref)
+        return PixelCoordinateSystem(self.data.shape, self.pix_ref, pix_unit=self.pix_unit)
 
     def get_projection(self, *args, **kargs):
         if len(args) == 1 and isinstance(args[0], ProjectionSettings):
@@ -1236,6 +1245,8 @@ class FitsImage(Image):
         self.wcs.wcs.set()
 
     def get_coordinate_system(self):
+        if self.header.get("CUNIT1") in ["pix", "pixel"]:
+            return Image.get_coordinate_system(self)
         return WorldCoordinateSystem(self.wcs, self.data.shape)
 
     def get_title(self):
