@@ -107,12 +107,12 @@ def get_random(seed=None):
     return np.random.RandomState(seed)
 
 
-# def time_conv2(shape1, shape2):
-#     return K_CONV * np.prod(shape1) * np.prod(shape2)
+def time_conv2(shape1, shape2):
+    return K_CONV * np.prod(shape1) * np.prod(shape2)
 
 
-# def time_fft2(shape):
-#     return K_FFT * np.prod(shape) * np.log(np.prod(shape))
+def time_fft2(shape):
+    return K_FFT * np.prod(shape) * np.log(np.prod(shape))
 
 
 def shift2d(array, delta):
@@ -2220,18 +2220,43 @@ class BaseConfiguration(ConfigurationsContainer):
         np.savetxt(filename, array, ["%s", "%s"])
 
 
-def validator_in_range(vmin, vmax, instance=float):
+def validator_in_range(vmin, vmax, instance=(float, int, long)):
 
     def validator(value):
-        assert isinstance(value, instance)
-        assert value >= vmin
-        assert value <= vmax
+        if isinstance(value, instance) and value >= vmin and value <= vmax:
+            return True
+        return False
+
+    return validator
 
 
 def validator_is(instance):
 
     def validator(value):
-        assert isinstance(value, instance)
+        return isinstance(value, instance)
+
+    return validator
+
+
+def validator_is_class(klass):
+
+    def validator(value):
+        return issubclass(value, klass)
+
+    return validator
+
+
+def validator_list(length, instance):
+
+    def validator(l):
+        if isinstance(l, (list, np.ndarray)) and len(l) == length:
+            return True
+        for value in l:
+            if not isinstance(value, instance):
+                return False
+        return True
+
+    return validator
 
 
 def format_table(data, header=None, min_col_size=10, max_col_size=None):

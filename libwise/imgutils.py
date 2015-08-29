@@ -1050,7 +1050,7 @@ class Image(object):
         ey = [0, self.data.shape[0]]
         xlim1, xlim2 = sorted([nputils.clamp(xy_p1[0], *ex), nputils.clamp(xy_p2[0], *ex)])
         ylim1, ylim2 = sorted([nputils.clamp(xy_p1[1], *ey), nputils.clamp(xy_p2[1], *ey)])
-        print xlim1, xlim2, ylim1, ylim2
+        # print xlim1, xlim2, ylim1, ylim2
         self.data = self.data[ylim1:ylim2, xlim1:xlim2].copy()
         xy_p1 = np.array([xlim1, ylim1])
         xy_p2 = np.array([xlim2, ylim2])

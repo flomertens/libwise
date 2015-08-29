@@ -252,6 +252,20 @@ def plot_mask(ax, mask, **kargs):
     ax.contour(mask.get_mask(), [0.5], **kargs)
 
 
+def plot_fit(ax, x, y, fct, n=1000, **kwargs):
+    fit_fct = fct.fit(x, y)
+    x = np.linspace(x.min(), x.max(), n)
+    ax.plot(x, fit_fct(x), label=fit_fct.get_text_equ(), **kwargs)
+
+    return fit_fct
+
+
+def plot_error_span(ax, x, y1, y2, c='y', **kwargs):
+    ax.plot(x, y1, c=c, **kwargs)
+    ax.plot(x, y2, c=c, **kwargs)
+    ax.fill_between(x, y1, y2, color=c, alpha=0.25)
+
+
 def p2i(xy_pixel):
     ''' Tramsform [[x, y], ...] to [[y, x]...]'''
     return np.array(xy_pixel).T[::-1].T
