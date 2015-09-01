@@ -6,8 +6,7 @@ Created on Feb 28, 2012
 
 try:
     from plotutils_ui import *
-except Exception, e:
-    raise
+except ImportError:
     from plotutils_noui import *
 
 

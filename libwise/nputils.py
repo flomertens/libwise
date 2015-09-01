@@ -331,7 +331,7 @@ def datetime_to_epoch(date):
 
 def epoch_to_datetime(epoch):
     i, d = divmod(float(epoch), 1)
-    if i < 1000:
+    if i < 1000 or i > 3000:
         return float(epoch)
     day = min(round((d * 365.25) + 1), 366)
     return datetime.datetime.strptime("%i %i" % (i, day), "%Y %j")
@@ -897,6 +897,10 @@ def count(array):
     return zip(items, count[items])
 
 
+def uniq(array):
+    return list(collections.OrderedDict.fromkeys(array))
+
+
 def find_peaks(img, width, threashold, exclude_border=True, max_peaks=None, fit_gaussian=False, 
                fit_gaussian_n=3, exclude_border_dist=1):
     ''' Caveats: if peak is spread over 2 pixel with exact same intensity, then 2 peaks will be detected '''
@@ -939,6 +943,7 @@ def find_peaks(img, width, threashold, exclude_border=True, max_peaks=None, fit_
 
 
 def get_interface(labels, label):
+    #PERF ISSUE: maybe crop the labels to make it smaller!
     labels = labels.copy()
 
     clabels0 = convolve(labels, [1, 1], axis=0, boundary='zero', mode='same')

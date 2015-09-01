@@ -429,9 +429,10 @@ class WCSTransform(Transform):
         return "WCSTr()"
 
     def pixel_scales(self):
-        cdelt = np.matrix(self.wcs.wcs.get_cdelt())
+        ''' Using something similar to astropy.wcs.utils.proj_plane_pixel_scales '''
+        cdelt = np.matrix(np.diag(self.wcs.wcs.get_cdelt()))
         pc = np.matrix(self.wcs.wcs.get_pc())
-        return np.array(cdelt * pc)[0]
+        return np.sqrt((np.array(cdelt * pc)**2).sum(axis=0))
 
 
 class ScaleTransform(Transform):
@@ -640,7 +641,7 @@ class Projection(object):
         return self._unit_tr(np.array(self.transform.pixel_scales()), unit)
 
     def mean_pixel_scale(self, unit=None):
-        return self._unit_tr(0.5 * np.abs(self.pixel_scales()).sum(), unit)
+        return self._unit_tr(np.abs(self.pixel_scales()).mean(), unit)
 
     def angular_separation(self, xy_pixel1, xy_pixel2):
         xy_coord1 = self.p2s(xy_pixel1)
@@ -1133,7 +1134,11 @@ class PilImage(Image):
     def __init__(self, file):
         self.file = file
         self.pil_image = PIL.Image.open(file)
-        Image.__init__(self, np.array(self.pil_image, dtype=np.float64))
+        data = np.array(self.pil_image, dtype=np.float64)
+        if data.ndim == 3:
+            data = data.mean(axis=2)
+
+        Image.__init__(self, data)
 
     def get_filename(self):
         return self.file
@@ -1537,7 +1542,7 @@ class PolyRegion(object):
         assert shape.name == "polygon"
         vertices = zip(shape.coord_list[::2], shape.coord_list[1::2])
         if coordinate_system is not None:
-            prj_settings = imgutils.ProjectionSettings()
+            prj_settings = ProjectionSettings()
             prj = coordinate_system.get_projection(prj_settings)
             vertices = prj.s2p(vertices)
         title = shape.attr[1].get("text")
@@ -1546,7 +1551,7 @@ class PolyRegion(object):
         return PolyRegion(vertices=vertices, color=color, title=title)
 
     def to_file(self, filename, coordinate_system):
-        prj_settings = imgutils.ProjectionSettings()
+        prj_settings = ProjectionSettings()
         prj = coordinate_system.get_projection(prj_settings)
         # skip last point
         if np.array_equal(self.vertices[-1], self.vertices[0]):
@@ -1554,7 +1559,7 @@ class PolyRegion(object):
         else:
             points = prj.p2s(self.vertices)
 
-        if isinstance(coordinate_system, imgutils.WorldCoordinateSystem):
+        if isinstance(coordinate_system, WorldCoordinateSystem):
             coord_format = "fk5"
         else:
             coord_format = "image"
@@ -1677,11 +1682,11 @@ class ImageRegion(Image):
         return np.array([x0 + (x1 - x0) / 2. for x0, x1 in zip_index(self.get_index())], dtype=np.int)
 
     def get_center_of_mass(self):
-        # TODO: optimize
+        # TODO: optimize PERF ISSUE
         return np.array(measurements.center_of_mass(self.get_data()))
 
     def get_coord_max(self):
-        # TODO: optimize
+        # TODO: optimize PERF ISSUE
         return np.array(nputils.coord_max(self.get_data()))
 
     def get_region_slice(self):
@@ -1820,7 +1825,7 @@ def test_save_fits():
 
 
 def test_image_region():
-    from libwise import imgutils, plotutils
+    from libwise import  plotutils
     lena = imgutils.lena()[::-1]
 
     img = ImageRegion(lena, [110, 120, 260, 280])

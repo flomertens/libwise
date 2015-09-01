@@ -126,8 +126,8 @@ class PolyRegionEditor(uiutils.UI):
             try:
                 poly_region = imgutils.PolyRegion.from_file(filename, self.img.get_coordinate_system())
                 self.load_poly_region(poly_region)
-            except:
-                msg = "Failed to load region %s" % filename
+            except Exception, e:
+                msg = "Failed to load region %s\n%s" % (filename, e)
                 print msg
                 uiutils.error_msg(msg, self)
 
@@ -138,7 +138,7 @@ class PolyRegionEditor(uiutils.UI):
             vertices = self.poly.xy
             color = self.color_entry.get_text()
             title = self.title_entry.get_text()
-            poly_region = PolyRegion(vertices, color=color, title=title)
+            poly_region = imgutils.PolyRegion(vertices, color=color, title=title)
             try:
                 poly_region.to_file(filename, self.img.get_coordinate_system())
             except:
@@ -280,7 +280,8 @@ def fix_crval(region_file, stack_image_file, fits_new_crval_file):
 
 
 if __name__ == '__main__':
-    test_editor()
-    # fix_crval("/homes/fmertens/data/m87/mojave/north_rail.reg", 
-    #           "/homes/fmertens/data/m87/mojave/full_stack_image.fits",
-    #           "/homes/fmertens/data/m87/mojave/icn/1228+126.u.2010_09_29.icn.fits")
+    # test_editor()
+    fix_crval("/homes/fmertens/data/crab/reg_fl3.reg",
+              "/homes/fmertens/data/crab/H1-FL.FITS",
+              "/homes/fmertens/data/crab/run001/full_stack_image.fits",
+              )
