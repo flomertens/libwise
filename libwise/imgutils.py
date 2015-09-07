@@ -251,19 +251,26 @@ def get_fits_epoch_fast(file):
     return date
 
 
-def fast_sorted_fits(files, key="DATE-OBS", start_date=None, end_date=None, filter_dates=None, filter=None):
+def fast_sorted_fits(files, key="DATE-OBS", start_date=None, end_date=None, filter_dates=None, 
+                     filter=None, step=1):
     ''' Need to have the utility gethead install and in the path '''
     file_date = []
     if filter is None:
         filter = nputils.date_filter(start_date=start_date, end_date=end_date, filter_dates=filter_dates)
     for file in files:
-        header = FastHeaderReader(file)
-        date = get_fits_epoch_fast(file)
-        if not filter(date):
-            continue
-        file_date.append((file, date))
+        if is_fits(file):
+            header = FastHeaderReader(file)
+            date = get_fits_epoch_fast(file)
+            if not filter(date):
+                continue
+            file_date.append((file, date))
+        else:
+            file_date.append((file, file))
     file_date = sorted(file_date, key=lambda k: k[1])
-    return zip(*file_date)[0]
+    files = zip(*file_date)[0]
+    if step > 1:
+        files = files[::step]
+    return files
 
 
 def is_fits(file):
@@ -272,8 +279,12 @@ def is_fits(file):
         return f.read(6) == 'SIMPLE'
 
 
-def guess_and_open(file, fits_extension=0):
+def guess_and_open(file, fits_extension=0, check_stack_img=False):
     if is_fits(file):
+        if check_stack_img:
+            hdr = FastHeaderReader(file)
+            if hdr.has_key(StackedImage.KEY_N):
+                return StackedImage.from_file(file, extension=fits_extension)
         return FitsImage(file, extension=fits_extension)
     if imghdr.what(file) is not None:
         return PilImage(file)
@@ -304,6 +315,9 @@ class IdleBeam(AbstractBeam):
 
     def __init__(self):
         AbstractBeam.__init__(self)
+
+    def __str__(self):
+        return "IdleBeam"
 
     def convolve(self, img, boundary="zero"):
         return img
@@ -480,7 +494,7 @@ class AbstractCoordinateSystem(object):
         pass
 
 
-class PixelCoordinateSystem(object):
+class PixelCoordinateSystem(AbstractCoordinateSystem):
 
     def __init__(self, shape=None, pix_ref=None, pix_unit=u.pix):
         self.shape = shape
@@ -528,7 +542,7 @@ class PixelCoordinateSystem(object):
         return WorldCoordinateSystem(wcs, shape=self.shape), wcs.to_header()
 
 
-class WorldCoordinateSystem(object):
+class WorldCoordinateSystem(AbstractCoordinateSystem):
 
     def __init__(self, wcs, shape=None):
         self.wcs = copy.deepcopy(wcs)
@@ -636,6 +650,9 @@ class Projection(object):
     def s2p(self, xy_coord, unit=None):
         ''' Accept 1D (x,y) or 2D N x 2 array '''
         return self._unit_tr(self.transform.s2p(xy_coord), unit)
+
+    def get_sky(self, pixel):
+        return np.round(self.mean_pixel_scale() * pixel, decimals=6) * self.unit
 
     def pixel_scales(self, unit=None):
         return self._unit_tr(np.array(self.transform.pixel_scales()), unit)
@@ -869,7 +886,7 @@ class RelativePixelProjection(AbstractRelativeProjection, Projection):
 
 
 class ImageSet(object):
-    ''' Transitional object used to store beam information 
+    ''' Object used to store beam information 
         until we can save full detection result'''
 
     def __init__(self):
@@ -902,7 +919,7 @@ class ImageSet(object):
     def to_file(self, filename, projection):
         '''Format is: filename, epoch, bmaj, bmin, bpa'''
         array = []
-        scale = projection.mean_pixel_scale()
+        scale = float(projection.mean_pixel_scale())
         for epoch, (img_filename, beam) in nputils.get_items_sorted_by_keys(self.images):
             epoch = float(nputils.datetime_to_epoch(epoch))
             if isinstance(beam, GaussianBeam):
@@ -917,10 +934,10 @@ class ImageSet(object):
     def from_file(filename, projection):
         new = ImageSet()
         array = np.loadtxt(filename, dtype=str)
-        scale = projection.mean_pixel_scale()
+        scale = float(projection.mean_pixel_scale())
         for file, epoch, bmaj, bmin, bpa in array:
             epoch = nputils.epoch_to_datetime(float(epoch))
-            if bmaj != 0:
+            if float(bmaj) != 0:
                 beam = GaussianBeam(float(bmaj) / scale, float(bmin) / scale, float(bpa))
             else:
                 beam = IdleBeam()
@@ -964,8 +981,6 @@ class Image(object):
             Image.EPOCH_COUNTER += 1
         else:
             self.epoch = epoch
-        if self.beam is None:
-            self.beam = IdleBeam()
         self.pix_unit = pix_unit
 
     def __add__(self, other):
@@ -997,9 +1012,11 @@ class Image(object):
         return new
 
     def get_meta(self):
+        # MEM ISSUE
         return ImageMeta(self.get_epoch(), self.get_coordinate_system(), self.get_beam())
 
     def get_coordinate_system(self):
+        # MEM ISSUE
         return PixelCoordinateSystem(self.data.shape, self.pix_ref, pix_unit=self.pix_unit)
 
     def get_projection(self, *args, **kargs):
@@ -1024,7 +1041,9 @@ class Image(object):
     def get_title(self):
         return ""
 
-    def get_epoch(self):
+    def get_epoch(self, str_format=None):
+        if str_format and isinstance(self.epoch, datetime.time):
+            return epoch.strftime('%Y-%m-%d')
         return self.epoch
 
     def get_region(self, center, shape, projection=None):
@@ -1128,6 +1147,9 @@ class Image(object):
         hdulist = pyfits.HDUList([hdu])
         hdulist.writeto(filename, clobber=True)
 
+    def save(self, filename):
+        self.save_to_fits(filename)
+
 
 class PilImage(Image):
 
@@ -1140,8 +1162,15 @@ class PilImage(Image):
 
         Image.__init__(self, data)
 
+    def __str__(self):
+        return "Image(%s)" % os.path.basename(self.file)
+
     def get_filename(self):
         return self.file
+
+    def save(self, filename, format=None, **params):
+        img = PIL.Image.fromarray(self.data)
+        img.save(filename, format=format, **params)
 
 
 class FitsImage(Image):
@@ -1186,7 +1215,7 @@ class FitsImage(Image):
         Image.__init__(self, data, epoch=epoch, beam=None, pix_ref=None)
 
     def __str__(self):
-        return "FitsImage(%s)" % self.file
+        return "FitsImage(%s)" % os.path.basename(self.file)
 
     def get_filename(self):
         return self.file
@@ -1292,12 +1321,10 @@ class FitsImage(Image):
                 hdu.header[key] = self.header[key]
         return hdu
 
-    @staticmethod
-    def new(data, beam, coord_sys, epoch=None):
-        pass
-
 
 class StackedImage(FitsImage):
+
+    KEY_N = 'STAN'
 
     def __init__(self, fits_image):
         self.first = fits_image
@@ -1308,7 +1335,6 @@ class StackedImage(FitsImage):
             self.wcs = fits_image.wcs.copy()
         self.epoch = fits_image.get_epoch()
         self.data = fits_image.data.copy()
-        self.all_datas = []
 
         self.epochs = [fits_image.get_epoch()]
 
@@ -1316,11 +1342,11 @@ class StackedImage(FitsImage):
         return len(self.epochs)
 
     @staticmethod
-    def from_file(file):
-        img = StackedImage(FitsImage(file))
+    def from_file(file, extension=0):
+        img = StackedImage(FitsImage(file, extension=extension))
         img.epochs = []
-        if 'STAN' in img.header:
-            for i in range(img.header['STAN']):
+        if StackedImage.KEY_N in img.header:
+            for i in range(img.header[StackedImage.KEY_N]):
                 img.epochs.append(nputils.guess_date(img.header['STA%i' % (i + 1)], ["%Y-%m-%d", "%d/%m/%y"]))
         else:
             img.epochs = [img.get_epoch()]
@@ -1329,13 +1355,13 @@ class StackedImage(FitsImage):
 
     @staticmethod
     def from_imgs(imgs):
-        mgr = StackedImageManager()
+        mgr = StackedImageBuilder()
         for img in imgs:
             mgr.add(img)
         return mgr.get()
 
     def add(self, image, action='mean'):
-        self.all_datas.append(image.data)
+        # self.all_datas.append(image.data)
         if not nputils.shape_eq(image.data, self.data):
             raise Exception("Image shape are not adequate for stacking")
         if action is 'mean':
@@ -1346,10 +1372,10 @@ class StackedImage(FitsImage):
             self.data = np.max([self.data, image.data], axis=0)
         elif action is 'min':
             self.data = np.min([self.data, image.data], axis=0)
-        elif action.startswith('per'):
-            self.data = np.percentile(self.all_datas, int(action[3:]), axis=0)
-        elif action is 'median':
-            self.data = np.median(self.all_datas, axis=0)
+        # elif action.startswith('per'):
+        #     self.data = np.percentile(self.all_datas, int(action[3:]), axis=0)
+        # elif action is 'median':
+        #     self.data = np.median(self.all_datas, axis=0)
         if isinstance(image, StackedImage):
             self.epochs = list(set(self.epochs) | set(image.epochs))
         else:
@@ -1378,7 +1404,7 @@ class StackedImage(FitsImage):
     def build_hdu(self):
         if isinstance(self.first, FitsImage):
             hdu = FitsImage.build_hdu(self)
-            hdu.header['STAN'] = len(self)
+            hdu.header[StackedImage.KEY_N] = len(self)
 
             for i, epoch in enumerate(self.get_epochs()):
                 hdu.header['STA%i' % (i + 1)] = epoch.strftime("%Y-%m-%d")
@@ -1387,7 +1413,7 @@ class StackedImage(FitsImage):
         return hdu
 
 
-class StackedImageManager():
+class StackedImageBuilder():
 
     def __init__(self):
         self.image = None
@@ -1412,38 +1438,36 @@ class FastHeaderReader(list):
     _RE_FITS_HEADER_LINE = re.compile("^([^=]{8})=([ ]*'.*'[ ]*|[ ]*[0-9.\-\+E]+[ ]*|[ ]*NAN[ ]*|[ ]*[TF][ ]*)/?(.*)$")
 
     def __init__(self, file, keys=None):
-
         self.file = file
         self.keys = keys
         self.read()
 
     def read(self):
-        fd = open(self.file)
-        for i in range(100):
-            line = fd.read(80)
-            if line == 'END' + ' ' * 77:
-                break
-            key = line[:8].rstrip()
-            if self.keys and key not in self.keys:
-                continue
-            if key == 'COMMENT' or key == 'HISTORY':
-                continue
-            match = self._RE_FITS_HEADER_LINE.match(line)
-            if match is None:
-                continue
-                # raise Exception("Error while parsing '%s' at line '%s'" % (self.file, line))
-            (key, value, comment) = match.groups()
-            value = value.strip()
-            key = key.strip()
-            if comment.strip() != '':
-                comment = comment.rstrip()
-            self.append({"key": key, "value": value, "comment": comment,
-                         "offset": 80 * i, "newline": ''})
-            if self.keys:
-                self.keys.remove(key)
-                if not self.keys:
+        with open(self.file) as fd:
+            for i in range(100):
+                line = fd.read(80)
+                if line == 'END' + ' ' * 77:
                     break
-        fd.close()
+                key = line[:8].rstrip()
+                if self.keys and key not in self.keys:
+                    continue
+                if key == 'COMMENT' or key == 'HISTORY':
+                    continue
+                match = self._RE_FITS_HEADER_LINE.match(line)
+                if match is None:
+                    continue
+                    # raise Exception("Error while parsing '%s' at line '%s'" % (self.file, line))
+                (key, value, comment) = match.groups()
+                value = value.strip()
+                key = key.strip()
+                if comment.strip() != '':
+                    comment = comment.rstrip()
+                self.append({"key": key, "value": value, "comment": comment,
+                             "offset": 80 * i, "newline": ''})
+                if self.keys:
+                    self.keys.remove(key)
+                    if not self.keys:
+                        break
 
     def __get_line(self, key):
         for line in self:
@@ -1619,19 +1643,25 @@ class Region(object):
 class ImageRegion(Image):
     ''' Represent a portion of an image'''
 
-    def __init__(self, img, index, shift=None, copy=False):
+    def __init__(self, img, index, shift=None, copy=False, cropped=False, shape=None):
         ''' img: the original image. No copy is made
             index: the region of interest
             shift: (optional)
             copy: if True, then the region of interest is copyed, allowing to free the original array (False by default)
+            cropped: if False, img has not been cropped
+            shape: if cropped, shape need to be set
          '''
         self.index = index
         # x0, y0, x1, y1 = index
         # if x0 < 0 or x1 > img.shape[0] or y0 < 0 or y1 > img.shape[1]:
         #     print img.shape, index
         #     raise Exception
-        self.shape = img.shape
-        self.img = img[nputils.index2slice(self.index)]
+        if not cropped:
+            self.shape = img.shape
+            self.img = img[nputils.index2slice(self.index)]
+        else:
+            self.shape = shape
+            self.img = img
         if copy:
             self.img = self.img.copy()
         self.set_shift(shift)
@@ -1663,6 +1693,9 @@ class ImageRegion(Image):
 
     def get_shape(self):
         return self.shape
+
+    def get_shape_region(self):
+        return self.img.shape
 
     def get_region(self):
         return self.img[self.get_region_slice()]
@@ -1703,7 +1736,12 @@ class ImageRegion(Image):
 
     def get_data(self):
         img = np.zeros(self.shape)
-        img[self.get_slice()] += self.get_region()
+        try:
+            img[self.get_slice()] += self.get_region()
+        except:
+            print self.index, self.get_index(), self.get_shift(), self.shape
+            print self.get_region().shape
+            raise
         return img
 
     def extend(self, nx, ny):
@@ -1839,10 +1877,51 @@ def test_image_region():
 
     stack.show()
 
+def test_image_region_correlate():
+    from libwise import plotutils
+    img = lena()
+
+    r1 = ImageRegion(img, [110, 120, 260, 280])
+    r2 = ImageRegion(img, [110, 120, 300, 350])
+
+    print nputils.norm_xcorr_coef(r1.get_region(), r2.get_region())
+    print nputils.norm_xcorr_coef(r1.get_data(), r2.get_data())
+
+    stack = plotutils.FigureStack()
+
+    fix, [ax1, ax2] = stack.add_subplots(ncols=2)
+    ax1.imshow(r1.get_region())
+    ax2.imshow(r2.get_region())
+
+    eindex = get_ensemble_index([r1, r2])
+
+    i1 = r1.get_data()[nputils.index2slice(eindex)]
+    i2 = r2.get_data()[nputils.index2slice(eindex)]
+    print i1.shape, i2.shape
+
+    i1 = nputils.smooth(i1, 3, boundary="symm", mode='same')
+    i2 = nputils.smooth(i2, 3, boundary="symm", mode='same')
+
+    print i1.shape, i2.shape
+
+    print nputils.norm_xcorr_coef(i1, i2)
+
+    fix, [ax1, ax2] = stack.add_subplots(ncols=2)
+    ax1.imshow(i1)
+    ax2.imshow(i2)
+
+    fix, [ax1, ax2] = stack.add_subplots(ncols=2)
+    ax1.imshow(r1.get_data())
+    ax2.imshow(r2.get_data())
+
+    stack.show()
+
 
 if __name__ == '__main__':
     # test_poly_editor()
     # test_beam()
     # test_save_fits()
-    test_image_region()
+    # test_image_region()
+    test_image_region_correlate()
+
 

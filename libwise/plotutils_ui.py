@@ -10,6 +10,15 @@ import uiutils
 from plotutils_base import *
 
 
+def subplots(**kargs):
+    figure = BaseCustomFigure()
+    axes = figure.subplots(**kargs)
+    window = BaseFigureWindow(figure=figure)
+    window.show()
+
+    return axes
+
+
 class Cursor(gobject.GObject):
 
     __gsignals__ = {
@@ -301,8 +310,8 @@ class PlotImageStats(AbstractTwoPointsRequest):
         return axes_has_artist(axes, Line2D) or axes_has_artist(axes, AxesImage)
 
     def init_line(self):
-        self.rect1 = Rectangle([0, 0], 0, 0, ec="black", fc='none', lw=2, animated=True, zorder=10)
-        self.rect2 = Rectangle([0, 0], 0, 0, ec='none', fc=blue, alpha=99, animated=True, zorder=10)
+        self.rect1 = Rectangle([0, 0], 0, 0, ec=black, fc='none', lw=2, animated=True, zorder=10)
+        self.rect2 = Rectangle([0, 0], 0, 0, ec='none', fc=blue, alpha=0.2, animated=True, zorder=10)
         self.axes.add_patch(self.rect1)
         self.axes.add_patch(self.rect2)
 
@@ -423,7 +432,7 @@ class StatsWindow(uiutils.UI):
         self.add_stat_entry(vbox, "P90", "%g" % np.percentile(data, 90))
 
         coord_com = fct_index2coord(measurements.center_of_mass(data))
-        self.add_stat_entry(vbox, "Center of mass", str(coord_com))
+        self.add_stat_entry(vbox, "Center of mass", str(np.round(coord_com, decimals=2)))
 
         self.notebook.append_page(vbox, gtk.Label(title))
 
@@ -483,6 +492,13 @@ class BaseFigureWindow(uiutils.UI):
                 self.navigation = NavigationToolbar(figure.canvas, self)
 
         self.box.pack_start(self.navigation, False, False)
+
+        self.connect("delete-event", self.on_destroy)
+
+    def on_destroy(self, event, window):
+        self.figure.clf()
+        self.tooltip_manager.destroy()
+        return False
 
     def show(self):
         self.start()
@@ -659,12 +675,13 @@ class TooltipManager:
         self.current_text = None
         self.show_timeout = Timeout(400, self.show_tooltip)
         window.connect("leave-notify-event", self.on_window_focus_out)
-        window.connect("delete-event", self.on_window_delete)
+        self.cid_motion = None
+        # window.connect("delete-event", self.on_window_delete)
 
     def set_current_figure(self, figure):
         self.current_figure = figure
         if figure in self.tooltips:
-            figure.canvas.mpl_connect('motion_notify_event', self.on_motion)
+            self.cid_motion = figure.canvas.mpl_connect('motion_notify_event', self.on_motion)
 
     def get_figure_tooltip(self, figure):
         return self.tooltips.get(figure)
@@ -697,7 +714,9 @@ class TooltipManager:
         self.show_timeout.reset()
         self.tooltip.hide()
 
-    def on_window_delete(self, widget, event):
+    def destroy(self):
+        if self.cid_motion is not None and self.current_figure.canvas is not None:
+            self.current_figure.canvas.mpl_disconnect(self.cid_motion)
         self.show_timeout.reset()
         self.tooltip.destroy()
 
@@ -738,7 +757,10 @@ class ExtendedNavigationToolbar(NavigationToolbar):
 
 
     def on_window_delete(self, window, event):
-        # delete cycle ref
+        self.destroy()
+        return False
+
+    def destroy(self):
         self.win = None
         self.canvas = None
 
@@ -824,12 +846,10 @@ class FixedAspectRatioFigureView(gtk.ScrolledWindow):
         self.delayed_resize = Timeout(200, self.do_canvas_resize)
 
     def cb_size_allocate(self, w, rect):
-        print "Size allocate"
         self.delayed_resize.reset()
         self.delayed_resize.activate(rect)
 
     def do_canvas_resize(self, rect):
-        print "Canvas resize"
         winch, hinch = self.figure.get_size_inches()
 
         if self.auto_dpi:
@@ -1385,7 +1405,6 @@ class SaveFigure(uiutils.UI):
         self.figure.navigation.configure_subplots(bn)
 
     def on_editor_changed(self, widget):
-        print "Update"
         self.update()
 
     def on_explorer_changed(self, widget):
@@ -1423,6 +1442,7 @@ class FigureStack(uiutils.UI, BaseFigureStack):
         BaseFigureStack.__init__(self, title=title, 
                                  fixed_aspect_ratio=fixed_aspect_ratio, **kwargs)
         uiutils.UI.__init__(self, 750, 600, title)
+        self.canvas_klass = FigureCanvas
         self.window_title = title
 
         self.connect('delete-event', self.on_destroy)
@@ -1434,7 +1454,6 @@ class FigureStack(uiutils.UI, BaseFigureStack):
         self.canvas = None
         self.navigation = None
         self.profile_line = None
-        self.cid_profile = None
         self.view_widget = None
 
         self.canva_box = gtk.HBox()
@@ -1472,10 +1491,15 @@ class FigureStack(uiutils.UI, BaseFigureStack):
         self.tooltip_manager = TooltipManager(self)
 
     def on_destroy(self, event, window):
-        "On destroy"
-        for figure in self.figures:
-            figure = figure[0]
-            figure.clf()
+        self.tooltip_manager.destroy()
+        self.tooltip_manager = None
+        self.destroy()
+        if self.view_widget is not None:
+            self.view_widget = None
+        if self.navigation is not None:
+            self.navigation.destroy()
+            self.navigation = None
+        return False
 
     def on_canva_box_size_allocated(self, box, allocation):
         size = "%s x %s" % (allocation.width, allocation.height)
@@ -1502,8 +1526,6 @@ class FigureStack(uiutils.UI, BaseFigureStack):
         else:
             if self.profile_line is not None:
                 self.profile_line.release()
-            if self.cid_profile is not None:
-                self.figure.canvas.mpl_disconnect(self.cid_profile)
             self.profile_line = None
 
     def on_list_changed(self, widget):
@@ -1535,7 +1557,7 @@ class FigureStack(uiutils.UI, BaseFigureStack):
     def on_save_pressed(self, widget):
         f = self.select_file()
         if f is not None:
-            self.save_all(f)
+            self.save_all(f, preset="printer_us_letter")
 
     def on_figure_changed(self):
         # import resource

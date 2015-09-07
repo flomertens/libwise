@@ -178,6 +178,7 @@ def imshow_image(ax, img, projection=None, beam=True, title=True, contour=False,
     if contour:
         intensity_colorbar = False
         ax.contour(img.data, **kargs)
+        ax.set_aspect('equal')
     else:
         im_mappable = ax.imshow(img.data, **kargs)
     ax.set_autoscale_on(False)
@@ -534,6 +535,9 @@ class ReplayableFigure(BaseCustomFigure):
     def add_callback(self, fct):
         self.draw_callbacks.append(fct)
 
+    def done(self):
+        self.canvas = None
+
     def replay(self, *args):
         if len(args) == 0 and len(self.last_args) != 0:
             args = self.last_args
@@ -583,11 +587,26 @@ class BaseFigureStack(object):
         self.figures = []
         self.kwargs = kwargs
 
-    def save_picture(self, dirpath, basename, ext='.png'):
+    def save_picture(self, dirpath, basename, ext='.png', preset=None):
+        if preset is not None:
+            printer_preset = presetutils.RcPreset.load(preset)
+            display_preset = presetutils.RcPreset.load("display")
+
         for i, (figure, name) in enumerate(self.figures):
-            FigureCanvas(figure)
+            if preset is not None:
+                printer_preset.apply(figure)
+            figure.tight_layout(pad=0.3)
+            remove_canvas = False
+            if figure.canvas is None:
+                self.canvas_klass(figure)
+                remove_canvas = True
             filepath = os.path.join(dirpath, '%s_%s%s' % (basename, i, ext))
+            print "Saving: %s" % filepath
             figure.savefig(filepath)
+            if preset is not None:
+                display_preset.apply(figure)
+            if remove_canvas:
+                figure.canvas = None
 
     def save_movie(self, dirpath, basename, ext='.avi'):
         tempdir = tempfile.mkdtemp()
@@ -599,30 +618,35 @@ class BaseFigureStack(object):
         os.system(cmd)
         shutil.rmtree(tempdir)
 
-    def save_pdf(self, filepath, preset="printer_us_letter"):
+    def save_pdf(self, filepath, preset=None):
         pdf = PdfPages(filepath)
-        printer_preset = presetutils.RcPreset.load(preset)
-        display_preset = presetutils.RcPreset.load("display")
+        print "Saving: %s" % filepath
+        if preset is not None:
+            printer_preset = presetutils.RcPreset.load(preset)
+            display_preset = presetutils.RcPreset.load("display")
+
         for figure, name in self.figures:
-            printer_preset.apply(figure)
+            if preset is not None:
+                printer_preset.apply(figure)
             figure.tight_layout(pad=0.3)
             remove_canvas = False
             if figure.canvas is None:
-                FigureCanvas(figure)
+                self.canvas_klass(figure)
                 remove_canvas = True
             pdf.savefig(figure)
-            display_preset.apply(figure)
+            if preset is not None:
+                display_preset.apply(figure)
             if remove_canvas:
                 figure.canvas = None
         pdf.close()
 
-    def save_all(self, filename):
+    def save_all(self, filename, preset=None):
         filepath, ext = os.path.splitext(filename)
         dirpath, basename = os.path.split(filepath)
         if ext == '.pdf':
-            self.save_pdf(filename)
+            self.save_pdf(filename, preset=preset)
         elif ext in ['.jpg', '.png']:
-            self.save_picture(dirpath, basename, ext)
+            self.save_picture(dirpath, basename, ext, preset=preset)
         elif ext in ['.avi', '.mp4']:
             self.save_movie(dirpath, basename, ext)
 
@@ -661,3 +685,8 @@ class BaseFigureStack(object):
     def show(self, start_main=True):
         # maybe save it
         pass
+
+    def destroy(self):
+        for figure, fig_name in self.figures:
+            figure.clf()
+            figure.canvas = None

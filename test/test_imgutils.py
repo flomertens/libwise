@@ -324,7 +324,7 @@ def test_stack_image():
     stacked.add(b)
     print stacked.data
 
-    stack_mgr = imgutils.StackedImageManager()
+    stack_mgr = imgutils.StackedImageBuilder()
     stack_mgr.add(a)
     stack_mgr.add(b)
     print stack_mgr.get().data

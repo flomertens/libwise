@@ -9,6 +9,8 @@ try:
 except ImportError:
     from plotutils_noui import *
 
+from plotutils_noui import FigureStack as FigureStackNoUI
+
 
 def test_figure_stack():
     stack = FigureStack()
@@ -229,8 +231,6 @@ def test_colorbar():
 
 
 def test_noui():
-    from plotutils_noui import FigureStack as FigureStackNoUI
-
     stack = FigureStackNoUI()
 
     fig, axs = stack.add_subplots("Random", n=2)
@@ -292,8 +292,9 @@ def test_lmc():
 
 
 if __name__ == '__main__':
-    test_figure_stack()
+    # test_figure_stack()
     # test_lmc()
     # test_markers()
     # test_colors()
     # test_colorbar()
+    test_noui()

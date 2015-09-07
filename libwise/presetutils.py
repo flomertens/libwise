@@ -6,8 +6,10 @@ RC_DEFAULTS = matplotlib.RcParams(matplotlib.rcParams.copy())
 PRESETS_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'presets')
 
 
-def set_rc_preset(preset_name):
+def set_rc_preset(preset_name, kargs={}):
     preset = RcPreset.load(preset_name)
+    for key, value in kargs.items():
+        preset.set_key(key, value)
     preset.apply()
 
 
