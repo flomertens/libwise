@@ -107,9 +107,11 @@ def twin_xaxis(ax, fct, fmt="%.3f"):
     return ax2
 
 
-def get_cmap(map_str, bad_color=white, bad_alpha=1):
+def get_cmap(map, bad_color=white, bad_alpha=1):
     ''' bad color: color used for mask values'''
-    cmap = cm.get_cmap(map_str)
+    if isinstance(map, cm.ColorMap):
+        return map
+    cmap = cm.get_cmap(map)
     cmap.set_bad(color=bad_color, alpha=bad_alpha)
     return cmap
 
@@ -265,6 +267,45 @@ def plot_error_span(ax, x, y1, y2, c='y', **kwargs):
     ax.plot(x, y1, c=c, **kwargs)
     ax.plot(x, y2, c=c, **kwargs)
     ax.fill_between(x, y1, y2, color=c, alpha=0.25)
+
+
+
+class AbsFormatter(object):
+    def __init__(self, useMathText=True):
+        self._fmt = ScalarFormatter(useMathText=useMathText, useOffset=False)
+        self._fmt.create_dummy_axis()
+
+    def __call__(self, direction, factor, values):
+        self._fmt.set_locs(values)
+        return [self._fmt(abs(v)) for v in values]
+
+
+def add_rotated_axis(ax, projection, theta, axis_pos=(1, 3), locator=None, formatter=None):
+    """Add an Additional rotated axis
+    
+    Parameters
+    ----------
+    ax : :class:`matplotlib.axes.Axes`
+    projection : :class:`libwise.imgutils.Projection`
+    theta : float
+        Angle of rotation of the axis in radians
+    axis_pos : tuple, optional
+        Position of the axis. Default is (1, 3)
+    locator : a grid helper locator, optional
+    formatter : a grid helper formatter, optional
+    """
+    axis = projection.new_rotated_floating_axis([0, 0], theta, axis_pos[0], 
+        axis_pos[1], ax)
+    axis.set_ticklabel_direction("+")
+    axis.major_ticklabels.set_axis_direction("bottom")
+    
+    axis.set_axis_direction("bottom")
+    axis.set_axislabel_direction("+")
+
+    finder = axis._axis_artist_helper.grid_helper.grid_finder
+    finder.update(grid_locator1=locator, tick_formatter1=formatter)
+
+    return axis
 
 
 def p2i(xy_pixel):

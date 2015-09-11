@@ -444,9 +444,10 @@ class WCSTransform(Transform):
 
     def pixel_scales(self):
         ''' Using something similar to astropy.wcs.utils.proj_plane_pixel_scales '''
-        cdelt = np.matrix(np.diag(self.wcs.wcs.get_cdelt()))
+        cdelt = self.wcs.wcs.get_cdelt()
+        cdelt_matrix = np.matrix(np.diag(cdelt))
         pc = np.matrix(self.wcs.wcs.get_pc())
-        return np.sqrt((np.array(cdelt * pc)**2).sum(axis=0))
+        return np.sign(cdelt) * np.sqrt((np.array(cdelt_matrix * pc)**2).sum(axis=0))
 
 
 class ScaleTransform(Transform):
@@ -1090,7 +1091,7 @@ class Image(object):
         ''' delta as xy_pix, except if projection is provided '''
         if projection is not None:
             delta = delta / projection.pixel_scales()
-        print "Shift:", delta
+        # print "Shift:", delta
         self.data = nputils.shift2d(self.data, np.round(p2i(delta)))
 
     def rotate(self, angle_rad, spline_order=0, smooth_len=3):
@@ -1195,8 +1196,8 @@ class FitsImage(Image):
             data = fits[extension].data
         else:
             raise ValueError("Not supported: naxis %s" % self.header['NAXIS'])
-        if float64:
-            data = data.astype(np.float64)
+        # if float64:
+        #     data = data.astype(np.float64)
 
         self.wcs = pywcs.WCS(self.header, naxis=2, fobj=fits)
         if "DATE-OBS" in self.zero_header:
