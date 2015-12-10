@@ -19,6 +19,14 @@ def subplots(**kargs):
     return axes
 
 
+def subplots_replayable(plt_fct, *args):
+    figure = ReplayableFigure(plt_fct, *args, dpi=75)
+    window = BaseFigureWindow(figure=figure)
+    window.show()
+
+    return figure    
+
+
 class Cursor(gobject.GObject):
 
     __gsignals__ = {

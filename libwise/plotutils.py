@@ -291,10 +291,30 @@ def test_lmc():
     stack.show()
 
 
+def test_m87():
+    stack = FigureStack()
+    fig, ax = stack.add_subplots()
+
+    m87 = imgutils.FitsImage(os.path.expanduser("~/data/m87/cwalker/run001/reference_image"))
+
+    cmap = get_cmap('YlGnBu_r')
+    # cmap.set_bad(color='white', alpha=1)
+
+    imshow_image(ax, m87, cmap=cmap)
+
+    stack.show()
+
+
 if __name__ == '__main__':
     # test_figure_stack()
     # test_lmc()
+    # test_m87()
     # test_markers()
     # test_colors()
     # test_colorbar()
-    test_noui()
+    # test_noui()
+
+    for i in range(10):
+        import gc
+        test_lmc()
+        gc.collect()

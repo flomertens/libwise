@@ -68,7 +68,7 @@ class WaveletTransform2D(uiutils.Experience):
 
 
 if __name__ == '__main__':
-    img = imgutils.galaxy()[::-1]
+    # img = imgutils.galaxy()[::-1]
 
     # def get_img(e1_coord, e2_coord):
     #     img = imgutils.cylinder_fct(500, 100., lambda y: 20 * np.sin(y/100.))
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     # img = img[480:600, 480:600]
 
-    # img = imgutils.lena()[::-1]
+    img = imgutils.galaxy()[::-1]
 
     # from WaveletDenoise import Denoise
     # denoiser = Denoise('db1', 3, dec=wtutils.uwt, rec=wtutils.uwt_inv)
