@@ -5,8 +5,7 @@ Created on Feb 28, 2012
 '''
 
 try:
-    from plotutils_uiqt4 import *
-    # from plotutils_ui import *
+    from plotutils_ui import *
 except ImportError:
     from plotutils_noui import *
 

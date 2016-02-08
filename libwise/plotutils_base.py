@@ -12,6 +12,7 @@ import matplotlib.animation as animation
 import matplotlib.cm as cm
 import matplotlib.ticker as mticker
 import matplotlib.dates as mdates
+import matplotlib.colors as mcolors
 
 from matplotlib.text import Text
 from matplotlib.lines import Line2D
@@ -64,6 +65,8 @@ all_markers = {'o': 'circle', 'D': 'diamond', 's': 'square', '*': 'star', 'h': '
 best_map_markers = ['o', 'D', 's', '*', 'h', '^', 'p']
 
 white = "#FFFFFF"
+
+black_cmap = mcolors.ListedColormap([black])
 
 
 def hash_fill_between(ax, x, y1, y2=0, **kargs):
