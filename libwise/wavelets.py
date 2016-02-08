@@ -19,6 +19,9 @@ class WaveletFamilyBase(object):
         self.name = name
         self.orders = orders
 
+    def __eq__(self, other):
+        return self.__class__ == other.__class__
+
     def get_name(self):
         return self.name
 
@@ -40,7 +43,7 @@ class DiscreteWaveletFamilyBase(WaveletFamilyBase):
         WaveletFamilyBase.__init__(self, name, orders)
 
     def get_wavelet(self, order):
-        return DiscreteWaveletBase(order, self.orders[order])
+        return DiscreteWaveletBase(order, self.orders[order], self)
 
 
 class DaubechiesWaveletFamily(DiscreteWaveletFamilyBase):
@@ -75,8 +78,9 @@ class BSplineWaveletFamily(DiscreteWaveletFamilyBase):
 
 class WaveletBase(object):
 
-    def __init__(self, name):
+    def __init__(self, name, family):
         self.name = name
+        self.family = family
 
     def __str__(self):
         return self.name
@@ -84,11 +88,14 @@ class WaveletBase(object):
     def get_name(self):
         return self.name
 
+    def get_family(self):
+        return self.family
+
 
 class DiscreteWaveletBase(WaveletBase):
 
-    def __init__(self, name, hkd):
-        WaveletBase.__init__(self, name)
+    def __init__(self, name, hkd, family):
+        WaveletBase.__init__(self, name, family)
         self.hk = hkd
         self.gk = nputils.qmf(hkd)
 

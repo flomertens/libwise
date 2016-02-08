@@ -64,6 +64,8 @@ class RcPreset(object):
 
     def is_preset(self, group, setting):
         key = '.'.join([group, setting])
+        # if key in self.preset_params and group == 'axes':
+        #     print self.preset_params
         return key in self.preset_params
 
     def get_groups(self):

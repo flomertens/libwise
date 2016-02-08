@@ -5,7 +5,8 @@ Created on Feb 28, 2012
 '''
 
 try:
-    from plotutils_ui import *
+    from plotutils_uiqt4 import *
+    # from plotutils_ui import *
 except ImportError:
     from plotutils_noui import *
 
@@ -13,7 +14,8 @@ from plotutils_noui import FigureStack as FigureStackNoUI
 
 
 def test_figure_stack():
-    stack = FigureStack()
+    app = QtGui.QApplication([])
+    stack = FigureStack(fixed_aspect_ratio=False)
 
     fig, axs = stack.add_subplots("Random", n=2)
 
@@ -42,9 +44,10 @@ def test_figure_stack():
         axs[1].plot(x, np.cos(2 * np.pi * x))
         axs[1].plot(x, np.sin(x))
 
-    stack.add_replayable_figure("Plots", do_plot)
+    stack.add_replayable_figure("Plot", do_plot)
 
     stack.show()
+    app.exec_()
 
 
 def test_projection():
@@ -61,22 +64,23 @@ def test_projection():
 
 
 def test_save_plot():
+    app = QtGui.QApplication([])
 
-    def draw_fct(figure, n):
+    def draw_fct(figure):
         ax1 = figure.subplots(nrows=1)
-        x = np.linspace(0, 2 * np.pi, n)
+        x = np.linspace(0, 2 * np.pi, 1000)
         ax1.plot(x, np.cos(x), label="Cosinus")
         ax1.plot(x, np.sin(x), label="Sinus")
         ax1.set_title("Test")
         ax1.legend()
 
-    fig = ReplayableFigure(draw_fct, 1000, dpi=75)
-    # fig = Figure()
-    # ax = fig.add_subplot(111)
-    # ax.plot([0, 12])
+    fig = ReplayableFigure(draw_fct)
+    # fig = BaseCustomFigure()
+    # draw_fct(fig)
 
     w = SaveFigure(fig, auto_dpi=True)
-    w.start()
+    w.show()
+    app.exec_()
 
 
 def test_plot():
@@ -291,10 +295,30 @@ def test_lmc():
     stack.show()
 
 
+def test_m87():
+    stack = FigureStack()
+    fig, ax = stack.add_subplots()
+
+    m87 = imgutils.FitsImage(os.path.expanduser("~/data/m87/cwalker/run001/reference_image"))
+
+    cmap = get_cmap('YlGnBu_r')
+    # cmap.set_bad(color='white', alpha=1)
+
+    imshow_image(ax, m87, cmap=cmap)
+
+    stack.show()
+
+
 if __name__ == '__main__':
-    # test_figure_stack()
+    test_save_plot()
     # test_lmc()
+    # test_m87()
     # test_markers()
     # test_colors()
     # test_colorbar()
-    test_noui()
+    # test_noui()
+
+    # for i in range(10):
+    #     import gc
+    #     test_lmc()
+    #     gc.collect()

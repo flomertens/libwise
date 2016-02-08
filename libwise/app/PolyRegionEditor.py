@@ -11,8 +11,8 @@ import os
 import numpy as np
 
 from libwise import uiutils, imgutils, plotutils
+from PyQt4 import QtGui, QtCore
 
-import gtk
 import pyregion
 
 import matplotlib.pyplot as plt
@@ -29,37 +29,37 @@ class PolyRegionEditor(uiutils.UI):
 
         uiutils.UI.__init__(self, 750, 600, "PolyRegion Editor")
 
-        vbox = gtk.VBox(False, 10)
-        self.add(vbox)
+        vbox = QtGui.QVBoxLayout()
+        self.setLayout(vbox)
 
-        canva_box = gtk.HBox()
-        vbox.pack_start(canva_box, True, True)
+        canva_box = QtGui.QHBoxLayout()
+        vbox.addLayout(canva_box)
 
         self.canvas = plotutils.BaseCustomCanvas()
-        canva_box.pack_start(self.canvas, True, True)
+        canva_box.addWidget(self.canvas)
 
-        ctl = gtk.HBox(False, 10)
-        vbox.pack_start(ctl, False, False)
+        ctl = QtGui.QHBoxLayout()
+        vbox.addLayout(ctl)
 
-        ctl.pack_start(plotutils.NavigationToolbar(self.canvas, self), True, True)
+        ctl.addWidget(plotutils.NavigationToolbar(self.canvas, self))
 
         self.title_entry = uiutils.EntryDescription("Title")
-        ctl.pack_start(self.title_entry, False, False)
+        ctl.addWidget(self.title_entry)
 
         self.color_entry = uiutils.EntryDescription("Color")
-        ctl.pack_start(self.color_entry, False, False)
+        ctl.addWidget(self.color_entry)
 
-        save_bn = gtk.Button("Save")
-        save_bn.connect("clicked", self.on_save_clicked)
-        ctl.pack_end(save_bn, False, True)
+        save_bn = QtGui.QPushButton("Save")
+        save_bn.clicked.connect(self.on_save_clicked)
+        ctl.addWidget(save_bn)
 
-        load_bn = gtk.Button("Load")
-        load_bn.connect("clicked", self.on_load_clicked)
-        ctl.pack_end(load_bn, False, True)
+        load_bn = QtGui.QPushButton("Load")
+        load_bn.clicked.connect(self.on_load_clicked)
+        ctl.addWidget(load_bn)
 
-        save_bn = gtk.Button("New")
-        save_bn.connect("clicked", self.on_new_clicked)
-        ctl.pack_end(save_bn, False, True)
+        save_bn = QtGui.QPushButton("New")
+        save_bn.clicked.connect(self.on_new_clicked)
+        ctl.addWidget(save_bn)
 
         self.ax = self.canvas.figure.subplots()
 
@@ -116,12 +116,11 @@ class PolyRegionEditor(uiutils.UI):
 
         self.load_default()
 
-        self.show_all()
-        gtk.main()
+        self.canvas.setFocus()
+        self.show()
 
     def on_load_clicked(self, bn):
-        filename = uiutils.select_file(parent=self, current_folder=self.current_folder,
-                                       action=gtk.FILE_CHOOSER_ACTION_OPEN)
+        filename = uiutils.open_file(parent=self, current_folder=self.current_folder)
         if filename is not None:
             try:
                 poly_region = imgutils.PolyRegion.from_file(filename, self.img.get_coordinate_system())
@@ -163,7 +162,7 @@ class PolyRegionEditor(uiutils.UI):
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.ax.draw_artist(self.poly)
         self.ax.draw_artist(self.line)
-        self.canvas.blit(self.ax.bbox)
+        self.canvas.update()
 
     def button_press_callback(self, event):
         'whenever a mouse button is pressed'
@@ -217,7 +216,7 @@ class PolyRegionEditor(uiutils.UI):
     def motion_notify_callback(self, event):
         'on mouse movement'
         if event.inaxes is not None:
-            self.canvas.grab_focus()
+            self.canvas.setFocus()
         ignore = (not self.showverts or event.inaxes is None or
                   event.button != 1 or self._ind is None)
         if ignore:
@@ -234,7 +233,7 @@ class PolyRegionEditor(uiutils.UI):
         self.canvas.restore_region(self.background)
         self.ax.draw_artist(self.poly)
         self.ax.draw_artist(self.line)
-        self.canvas.blit(self.ax.bbox)
+        self.canvas.update()
 
     def _update_line(self):
         # save verts because polygon gets deleted when figure is closed
@@ -263,8 +262,10 @@ def test_editor():
 
     img = imgutils.FitsImage(fits)
 
+    app = uiutils.QtGui.QApplication([])
     editor = PolyRegionEditor(img, current_folder=os.path.dirname(fits))
     editor.start()
+    app.exec_()
 
 
 def fix_crval(region_file, stack_image_file, fits_new_crval_file):
@@ -280,8 +281,8 @@ def fix_crval(region_file, stack_image_file, fits_new_crval_file):
 
 
 if __name__ == '__main__':
-    # test_editor()
-    fix_crval("/homes/fmertens/data/crab/reg_fl3.reg",
-              "/homes/fmertens/data/crab/H1-FL.FITS",
-              "/homes/fmertens/data/crab/run001/full_stack_image.fits",
-              )
+    test_editor()
+    # fix_crval("/homes/fmertens/data/crab/reg_fl3.reg",
+    #           "/homes/fmertens/data/crab/H1-FL.FITS",
+    #           "/homes/fmertens/data/crab/run001/full_stack_image.fits",
+    #           )

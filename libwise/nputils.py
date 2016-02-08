@@ -194,6 +194,47 @@ def get_ellipse_radius(a, b, theta):
     return a * b / np.sqrt(a ** 2 * np.sin(theta) ** 2 + b ** 2 * np.cos(theta) ** 2)
 
 
+def get_ellipse_minor_major(r, theta, a_b_ratio):
+    b = r * np.sqrt((np.cos(theta) / a_b_ratio) ** 2 + np.sin(theta) ** 2)
+    a = b * a_b_ratio
+    return a, b
+
+
+def create_ellipse(r, xc, alpha, n=100, angle_range=(0,2*np.pi)):
+    """
+    Create points on an ellipse with uniform angle step
+
+    From https://code.google.com/p/fit-ellipse/source/browse/trunk/fit_ellipse.py
+
+    Author: Alexis Mignon; Licence: GPL v3
+    
+    Parameters
+    ----------
+    r: tuple
+        (rx, ry): major an minor radii of the ellipse. Radii are supposed to
+        be given in descending order. No check will be done.
+    xc : tuple
+        x and y coordinates of the center of the ellipse
+    alpha : float
+        angle between the x axis and the major axis of the ellipse
+    n : int, optional
+        The number of points to create
+    angle_range : tuple (a0, a1)
+        angles between which points are created.
+        
+    Returns
+    -------
+        (n * 2) array of points """
+    R = np.array([
+        [np.cos(alpha), -np.sin(alpha)],
+        [np.sin(alpha), np.cos(alpha)]
+    ])
+    
+    a0,a1 = angle_range
+    angles = np.linspace(a0,a1,n)
+    X = np.vstack([ np.cos(angles) * r[0], np.sin(angles) * r[1]]).T
+    return np.dot(X,R.T) + xc
+
 # def get_offsets_around(n=1, direction=None):
 #     for i in np.arange(-n, n + 1):
 #         for j in np.arange(-n, n + 1):
@@ -973,8 +1014,8 @@ def get_interface(labels, label):
     return results
 
 
-def k_sigma_noise_estimation(img, k=3, iteration=3, beam=None):
-    noise = gaussian_noise([200, 200], 0, 1)
+def k_sigma_noise_estimation(data, k=3, iteration=3, beam=None):
+    noise = gaussian_noise([int(10000 ** (1 / float(data.ndim)))] * data.ndim, 0, 1)
     if beam is not None:
         noise = beam.convolve(noise)
         detail = lambda a: a - smooth(a, max(beam.widthx, beam.widthy) * 3, mode='same')
@@ -982,7 +1023,7 @@ def k_sigma_noise_estimation(img, k=3, iteration=3, beam=None):
         detail = lambda a: a - smooth(a, 3, mode='same')
     sigma_filtered = detail(noise).std()
 
-    d = detail(img)
+    d = detail(data)
 
     for i in range(iteration):
         d[np.abs(d) > k * d.std()] = 0

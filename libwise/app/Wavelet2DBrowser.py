@@ -11,19 +11,21 @@ import waveletsui
 class Wavelet2DBrowser(uiutils.Experience):
 
     def __init__(self, wavelet_families=wavelets.get_all_wavelet_families()):
-        gui = uiutils.UI(900, 500, "Wavelet Browser")
+        uiutils.Experience.__init__(self)
+        self.gui = uiutils.UI(900, 500, "Wavelet Browser")
 
-        box = gui.add_box(uiutils.VBox())
+        box = self.gui.add_box(uiutils.VBox())
         self.view = box.add(plotutils.BaseCustomCanvas(), True)
         ctl = box.add(uiutils.HBox())
 
         [[self.ax1, self.ax2], [self.ax3, self.ax4]] = self.view.figure.subplots(2, 2)
 
-        self.wavelet = waveletsui.WaveletSelector(ctl, self,
-                                                   wavelet_families)
-        gui.start()
+        self.wavelet = waveletsui.WaveletSelector(ctl, self, wavelet_families)
+        self.gui.show()
+        
+        self.do_update()
 
-    def update(self, changed):
+    def update(self, changed, thread):
         return self.wavelet.get().get_2d_tf_wavelet_fct(8, -4, 4, 10000)
 
     def after_update(self, result):
@@ -52,4 +54,6 @@ class Wavelet2DBrowser(uiutils.Experience):
         self.view.draw()
 
 if __name__ == '__main__':
+    app = uiutils.QtGui.QApplication([])
     win = Wavelet2DBrowser()
+    app.exec_()

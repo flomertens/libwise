@@ -117,13 +117,15 @@ def uiwt_inv(a, d, wavelet, boundary, level, axis=None):
 
 
 def wavedec(signal, wavelet, level, boundary="symm",
-            dec=dwt, axis=None):
+            dec=dwt, axis=None, thread=None):
     # max_level = get_wavelet_obj(wavelet).get_max_level(signal)
     # if level > max_level:
         # raise ValueError("Level should be < %s" % max_level)
     res = []
     a = signal
     for j in range(int(level)):
+        if thread and not thread.is_alive():
+            return None
         a, d = dec(a, wavelet, boundary, j, initial_signal=signal, axis=axis)
         res.append(d)
     res.append(a)
@@ -155,9 +157,11 @@ def pyramiddec(signal, widths=None, angle=0, ellipticity=1, boundary="symm"):
 
 
 def waverec(coefs, wavelet, boundary="symm", rec=dwt_inv,
-            axis=None, shape=None):
+            axis=None, shape=None, thread=None):
     a = coefs[-1]
     for j in range(len(coefs) - 2, -1, -1):
+        if thread and not thread.is_alive():
+            return None
         a = rec(a, coefs[j], wavelet, boundary, j, axis=axis)
     if shape and shape != a.shape:
         # See idwt() for an explaination
@@ -172,16 +176,16 @@ def dec2d(img, wavelet, boundary, dec, level):
     return (a, d1, d2, d3)
 
 
-def wavedec2d_iter(img, wavelet, level, boundary="symm", dec=dwt):
+def wavedec2d(img, wavelet, level, boundary="symm", dec=dwt, thread=None):
     a = img
+    res = []
     for j in range(int(level)):
+        if thread and not thread.is_alive():
+            return None
         a, d1, d2, d3 = dec2d(a, wavelet, boundary, dec, j)
-        yield [d1, d2, d3]
-    yield a
-
-
-def wavedec2d(img, wavelet, level, boundary="symm", dec=dwt):
-    return list(wavedec2d_iter(img, wavelet, level, boundary, dec))
+        res.append([d1, d2, d3])
+    res.append(a)
+    return res
 
 
 def rec2d(a, d, wavelet, boundary, rec, level):
@@ -195,9 +199,11 @@ def rec2d(a, d, wavelet, boundary, rec, level):
     return img
 
 
-def waverec2d(coefs, wavelet, boundary="symm", rec=dwt_inv, shape=None):
+def waverec2d(coefs, wavelet, boundary="symm", rec=dwt_inv, shape=None, thread=None):
     a = coefs[-1]
     for j in range(len(coefs) - 2, -1, -1):
+        if thread and not thread.is_alive():
+            return None
         a = rec2d(a, coefs[j], wavelet, boundary, rec, j)
     if shape and shape != a.shape:
         a = nputils.index(a, np.s_[:-1])

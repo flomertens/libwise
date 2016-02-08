@@ -4,74 +4,67 @@ Created on Mar 9, 2012
 @author: fmertens
 '''
 import os
-import gtk
-import gobject
+import sys
 import threading
+import collections
+
+import numpy as np
+
+from PyQt4 import QtGui, QtCore
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 
 import imgutils
 
 
-def select_file(parent=None, current_folder=None, action=gtk.FILE_CHOOSER_ACTION_SAVE):
-    if action == gtk.FILE_CHOOSER_ACTION_SAVE:
-        button_ok = gtk.STOCK_SAVE
-    elif action == gtk.FILE_CHOOSER_ACTION_OPEN:
-        button_ok = gtk.STOCK_OPEN
+def select_file(parent=None, current_folder=""):
+    res = QtGui.QFileDialog.getSaveFileName(parent=parent, directory=current_folder)
+    if res == "":
+        return None
+    return str(res)
 
-    dialog = gtk.FileChooserDialog(action=action,
-                                   buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                                            button_ok, gtk.RESPONSE_OK), parent=parent)
-    dialog.set_default_response(gtk.RESPONSE_OK)
-    if current_folder is not None:
-        dialog.set_current_folder(current_folder)
-    response = dialog.run()
-    dest = None
-    if response == gtk.RESPONSE_OK:
-        dest = dialog.get_filename()
-    dialog.destroy()
-    return dest
+
+def open_file(parent=None, current_folder=""):
+    res = QtGui.QFileDialog.getOpenFileName(parent=parent, directory=current_folder)
+    if res == "":
+        return None
+    return str(res)
 
 
 def select_folder():
-    dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                   buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                                            gtk.STOCK_APPLY, gtk.RESPONSE_OK))
-    dialog.set_default_response(gtk.RESPONSE_OK)
-    response = dialog.run()
-    dest = None
-    if response == gtk.RESPONSE_OK:
-        dest = dialog.get_filename()
-    dialog.destroy()
-    return dest
+    res = QtGui.QFileDialog.getExistingDirectory()
+    if res == "":
+        return None
+    return str(res)
+    
+
+def erro_msg(msg, parent=None):
+    dial = QtGui.QMessageBox.warning(parent, "", msg, QtGui.QMessageBox.Close)
 
 
-def error_msg(msg, parent=None):
-    dial = gtk.MessageDialog(parent=parent, type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE,
-                             flags=gtk.DIALOG_MODAL, message_format=msg)
-    dial.run()
-    dial.destroy()
+class Box(QtGui.QBoxLayout):
+
+    def add(self, element, expand=False):
+        if isinstance(element, QtGui.QBoxLayout):
+            self.addLayout(element)
+        else:
+            self.addWidget(element)
+        return element
 
 
-def check_python_interactive():
-    import __main__ as main
-    return not hasattr(main, '__file__')
+class VBox(QtGui.QVBoxLayout, Box):
+
+    def __init__(self, homogeneous=False, spacing=10):
+        QtGui.QVBoxLayout.__init__(self)
+        self.setSpacing(spacing)
 
 
-class PlotView(FigureCanvas):
+class HBox(QtGui.QHBoxLayout, Box):
 
-    def __init__(self, figure=None):
-        if figure is None:
-            figure = Figure(dpi=90, frameon=True)
-        self.figure = figure
-        FigureCanvas.__init__(self, figure)
-
-
-class NavigationToolbar(NavigationToolbar2GTKAgg):
-
-    def __init__(self, plot_view):
-        super(NavigationToolbar, self).__init__(plot_view, None)
+    def __init__(self, homogeneous=False, spacing=10):
+        QtGui.QHBoxLayout.__init__(self)
+        self.setSpacing(spacing)
 
 
 class Parameter:
@@ -93,12 +86,12 @@ class Parameter:
             self.experience.do_update(self)
 
 
-class WidgetParameter(Parameter, gtk.HBox):
+class WidgetParameter(Parameter, HBox):
 
     def __init__(self, box, experience, initial_value=None):
         Parameter.__init__(self, experience, initial_value)
-        gtk.HBox.__init__(self, False, 10)
-        box.pack_start(self, False, True)
+        HBox.__init__(self, False, 10)
+        box.add(self)
 
 
 class NamedWidgetParameter(WidgetParameter):
@@ -106,8 +99,8 @@ class NamedWidgetParameter(WidgetParameter):
     def __init__(self, box, experience, name, initial_value=None):
         WidgetParameter.__init__(self, box, experience, initial_value)
         if name is not None:
-            label = gtk.Label(name)
-            self.pack_start(label, False, True)
+            label = QtGui.QLabel(name)
+            self.add(label)
 
 
 class TextParameter(NamedWidgetParameter):
@@ -115,30 +108,33 @@ class TextParameter(NamedWidgetParameter):
     def __init__(self, box, experience, name, value, max_lenght=-1):
         NamedWidgetParameter.__init__(self, box, experience, name, value)
 
-        self.entry = gtk.Entry()
-        self.entry.set_width_chars(max_lenght)
-        self.entry.set_text(str(value))
-        self.pack_start(self.entry, False, False)
+        self.entry = QtGui.QLineEdit(str(value))
+        if max_lenght > 0:
+            metric = QtGui.QFontMetrics(self.entry.font())
+            self.entry.setFixedWidth(metric.width("8" * max_lenght))
+        # self.entry.set_width_chars(max_lenght)
+        self.entry.returnPressed.connect(lambda : self.set(self.get()))
+        self.add(self.entry)
 
-        self.entry.connect('activate', self.on_activated)
+        # self.entry.connect('activate', self.on_activated)
 
         self._initialized()
 
-    def on_activated(self, entry):
-        self.set(self.entry.get_text())
+    # def textChanged(self, text):
+    #     self.set(text)
 
     def get(self):
-        return self.entry.get_text()
+        return self.entry.text()
 
     def set(self, value, update=True):
-        self.entry.set_text(str(value))
+        self.entry.setText(str(value))
         NamedWidgetParameter.set(self, value, update=update)
 
 
 class FloatParamater(TextParameter):
 
     def get(self):
-        return float(self.entry.get_text())
+        return float(self.entry.text())
 
 
 class ListParameter(NamedWidgetParameter):
@@ -147,115 +143,122 @@ class ListParameter(NamedWidgetParameter):
                  initial_value=None):
         NamedWidgetParameter.__init__(self, box, experience, name,
                                       initial_value)
-        self.values = dict()
-        self.orders = []
 
-        self.combo = gtk.combo_box_new_text()
-        self.pack_start(self.combo, True, True)
+        self.combo = QtGui.QComboBox()
+        self.add(self.combo)
 
-        self.combo.connect("changed", self.on_changed)
+        self.combo.activated.connect(self.on_changed)
         self.set_values(values, initial_value)
         self._initialized()
 
-    def on_changed(self, combobox):
-        text = self.combo.get_active_text()
-        if text is not None:
-            self.set(self.values[text])
-
-    def set_index(self, index):
-        self.combo.set_active(index)
+    def on_changed(self, index):
+        self.set(self.dict.values()[index])
 
     def set_values(self, values, initial_value=None):
-        self.combo.get_model().clear()
-        for value in values:
-            if isinstance(values, dict):
-                v = values[value]
-            else:
-                v = value
-            self.values[str(value)] = v
-            self.orders.append(str(value))
-            self.combo.append_text(str(value))
-        if initial_value and initial_value in values:
-            self.combo.set_active(self.orders.index(str(initial_value)))
+        self.combo.clear()
+        if isinstance(values, dict):
+            self.dict = values
+            self.values = self.dict.values()
         else:
-            self.combo.set_active(0)
+            self.dict = collections.OrderedDict(zip([str(k) for k in values], values))
+            self.values = values
+
+        self.combo.addItems(self.dict.keys())
+
+        if not initial_value and len(self.values) > 0:
+            initial_value = self.values[0]
+
+        if initial_value and initial_value in self.values:
+            index = self.values.index(initial_value)
+            self.combo.setCurrentIndex(index)
+            self.set(self.dict.values()[index])
 
 
 class RangeParameter(NamedWidgetParameter):
 
     def __init__(self, box, experience, name, lower, upper, step,
-                 range_widget, initial_value=None):
+                 range_widget, initial_value=None, range_box=None):
         if initial_value is None:
             initial_value = lower
         NamedWidgetParameter.__init__(self, box, experience, name,
                                       initial_value)
 
-        self.adj = gtk.Adjustment(initial_value, lower, upper, step, 1, 0)
+        # self.adj = gtk.Adjustment(initial_value, lower, upper, step, 1, 0)
         self.range_widget = range_widget
-        self.range_widget.set_adjustment(self.adj)
-        self.range_widget.set_update_policy(gtk.UPDATE_DELAYED)
-        self.range_widget.connect("value-changed", self.on_changed)
-        self.pack_start(self.range_widget, True, False)
+        self.range_widget.setRange(lower, upper)
+        self.range_widget.setSingleStep(step)
+        # self.range_widget.set_update_policy(gtk.UPDATE_DELAYED)
+        self.add(self.range_widget)
 
         if initial_value is not None:
             self.set(initial_value, update=False)
 
         self._initialized()
 
+    def value_changed(self, value):
+        self.set(value)
+
     def set_max(self, maxi):
-        self.adj.set_upper(maxi)
-        if self.adj.get_value() > maxi:
-            self.range_widget.set_value(maxi)
+        self.range_widget.setMaximum(maxi)
+        if self.range_widget.value() > maxi:
+            self.range_widget.setValue(maxi)
             self.set(maxi, update=False)
 
     def get_max(self):
-        return self.adj.get_upper()
+        return self.range_widget.maximum()
 
     def set_min(self, mini):
-        self.adj.set_lower(mini)
-        if self.adj.get_value() < mini:
-            self.range_widget.set_value(mini)
+        self.range_widget.setMinimum(mini)
+        if self.range_widget.value() < mini:
+            self.range_widget.setValue(mini)
             self.set(mini, update=False)
 
     def set(self, value, update=True):
-        if value >= self.adj.get_lower() and value <= self.adj.get_upper():
+        if value >= self.range_widget.minimum() and value <= self.range_widget.maximum():
             super(RangeParameter, self).set(value, update)
-            self.range_widget.set_value(value)
-
-    def on_changed(self, spinbutton):
-        self.set(self.range_widget.get_value())
+            self.range_widget.setValue(value)
 
 
 class SpinRangeParameter(RangeParameter):
 
     def __init__(self, box, experience, name, lower, upper, step,
                  initial_value=None):
+        spin = QtGui.QSpinBox()
+        spin.valueChanged.connect(self.value_changed)
+
         RangeParameter.__init__(self, box, experience, name, lower,
-                                upper, step, gtk.SpinButton(), initial_value)
+                                upper, step, spin, initial_value)
 
 
 class ScaleRangeParameter(RangeParameter):
 
     def __init__(self, box, experience, name, lower, upper, step,
                  initial_value=None, digits=0):
-        scale = gtk.HScale()
-        scale.set_value_pos(gtk.POS_LEFT)
-        scale.set_size_request(200, 30)
-        scale.set_digits(digits)
+        slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        slider.setTickPosition(QtGui.QSlider.TicksBelow)
+        slider.setMinimumSize(150, 30)
+
         RangeParameter.__init__(self, box, experience, name, lower,
-                                upper, step, scale, initial_value)
+                                upper, step, slider, initial_value)
+
+        self.label = QtGui.QLabel(str(self.get()))
+        self.insertWidget(1, self.label)
+        slider.valueChanged.connect(self.value_changed)
+
+    def value_changed(self, value):
+        self.label.setText(str(value))
+        RangeParameter.value_changed(self, value)
 
 
 class Button(WidgetParameter):
 
     def __init__(self, box, experience, name, on_clicked=None):
         WidgetParameter.__init__(self, box, experience, None)
-        self.bn = gtk.Button(name)
-        self.bn.set_property("use-stock", True)
+        self.bn = QtGui.QPushButton(name)
         if on_clicked is None:
             on_clicked = self.on_clicked
-        self.bn.connect("clicked", on_clicked)
-        self.pack_start(self.bn, True, True)
+        self.bn.clicked.connect(on_clicked)
+        self.add(self.bn)
 
         self._initialized()
 
@@ -263,7 +266,8 @@ class Button(WidgetParameter):
 class UpdateButton(Button):
 
     def __init__(self, box, experience):
-        Button.__init__(self, box, experience, gtk.STOCK_REFRESH, on_clicked=self.on_clicked)
+        Button.__init__(self, box, experience, "", on_clicked=self.on_clicked)
+        self.bn.setIcon(QtGui.QIcon.fromTheme("view-refresh"))
 
     def on_clicked(self, bn):
         self.set(1)
@@ -284,213 +288,284 @@ class OpenImage(Button):
             label = "DATA"
         else:
             label = os.path.basename(value.file)
-        self.bn.set_label(label)
+        self.bn.setText(label)
 
     def on_clicked(self, bn):
-        path = select_file(action=gtk.FILE_CHOOSER_ACTION_OPEN)
+        path = open_file()
 
         if path is not None:
-            try:
-                img = imgutils.guess_and_open(path)
-                self.set(img)
-            except:
-                pass
+            img = imgutils.guess_and_open(path)
+            self.set(img)
 
 
-class Box(gtk.Box):
+class PlotView(FigureCanvas):
 
-    def add(self, element, expand=False):
-        self.pack_start(element, expand, True)
-        return element
-
-
-class VBox(gtk.VBox, Box):
-
-    def __init__(self, homogeneous=False, spacing=10):
-        gtk.VBox.__init__(self, homogeneous, spacing)
-
-
-class HBox(gtk.HBox, Box):
-
-    def __init__(self, homogeneous=False, spacing=10):
-        gtk.HBox.__init__(self, homogeneous, spacing)
+    def __init__(self, figure=None):
+        if figure is None:
+            figure = Figure(dpi=90, frameon=True)
+        self.figure = figure
+        FigureCanvas.__init__(self, figure)
+        FigureCanvas.setSizePolicy(self,
+                                   QtGui.QSizePolicy.Expanding,
+                                   QtGui.QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
 
 
-class UI(gtk.Window):
+class NavigationToolbar(NavigationToolbar2QT):
 
-    def __init__(self, xsize, ysize, title, parent=None, destroy_with_parent=True):
-        gobject.threads_init()
-        gtk.Window.__init__(self)
-        self.connect("destroy", self.__on_destroy)
-        self.set_default_size(xsize, ysize)
-        self.set_title(title)
-        self.set_property("border-width", 5)
-        self.set_transient_for(parent)
-        if parent is not None:
-            self.connect("key-press-event", self.__on_key_press)
-            self.set_destroy_with_parent(destroy_with_parent)
-        # if parent is None and check_python_interactive():
-        #     self.connect('delete-event', self.hide_and_quit_on_delete)
-
-    def __on_destroy(self, window):
-        if self.transient_parent is None:
-            gtk.main_quit()
-
-    def __on_key_press(self, window, event):
-        if event.keyval == gtk.keysyms.Escape:
-            self.emit("delete-event", event)
-            # self.hide()
-
-    def hide_and_quit_on_delete(self, window, event):
-        print "Hide on delete"
-        window.hide()
-        gtk.main_quit()
-        return True
-
-    def add_box(self, box):
-        self.add(box)
-        return box
-
-    def start(self):
-        self.show_all()
-        gtk.main()
+    def __init__(self, plot_view):
+        super(NavigationToolbar, self).__init__(plot_view, None)
 
 
-class EntryDescription(gtk.Entry):
+class EntryDescription(QtGui.QLineEdit):
 
     def __init__(self, description, text=None, n_chars=None):
         super(EntryDescription, self).__init__()
         if n_chars is not None:
-            self.set_width_chars(n_chars)
+            metric = QtGui.QFontMetrics(self.font())
+            self.setFixedWidth(metric.width("8" * n_chars))
         self.description = description
         self.description_mode = False
+        self.clear_on_escape = False
 
-        self.set_tooltip_text(description)
+        self.setToolTip(description)
 
         if text is None or text == "":
             self.set_description_mode(True)
         else:
-            self.set_text(text)
+            self.setText(text)
 
-        self.connect("focus-in-event", self.on_focus_in)
-        self.connect("focus-out-event", self.on_focus_out)
+    def keyPressEvent(self, event):
+        QtGui.QLineEdit.keyPressEvent(self, event)
+        if self.clear_on_escape:
+            if event.key() == QtCore.Qt.Key_Escape:
+                self.clear()
+
+    def set_clear_on_escape(self, value):
+        self.clear_on_escape = value
 
     def set_description_mode(self, value):
-        if value == self.description_mode:
-            return
+        # if value == self.description_mode:
+        #     return
         self.description_mode = value
         if self.description_mode is True:
-            self.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('gray'))
-            super(EntryDescription, self).set_text(self.description)
+            self.setStyleSheet("color: #808080")
+            # self.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('gray'))
+            super(EntryDescription, self).setText(self.description)
         else:
-            self.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('black'))
-            super(EntryDescription, self).set_text("")
+            self.setStyleSheet("color: #000000")
+            # self.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('black'))
+            super(EntryDescription, self).setText("")
 
-    def on_focus_in(self, entry, event):
-        self.set_description_mode(False)
+    def focusInEvent(self, event):
+        if self.description_mode:
+            self.set_description_mode(False)
+        QtGui.QLineEdit.focusInEvent(self, event)
 
-    def on_focus_out(self, entry, event):
-        if self.get_text_length() == 0:
+    def focusOutEvent(self, event):
+        if len(self.text()) == 0:
             self.set_description_mode(True)
+        QtGui.QLineEdit.focusOutEvent(self, event)
 
     def get_text(self):
         if self.description_mode is True:
             return ""
-        return super(EntryDescription, self).get_text()
+        return super(EntryDescription, self).text()
 
     def set_text(self, text):
         if text == "" or text is None:
             self.set_description_mode(True)
         else:
             self.set_description_mode(False)
-            super(EntryDescription, self).set_text(text)
+            super(EntryDescription, self).setText(text)
 
     def clear(self):
-        self.set_description_mode()
-        self.emit("changed")
+        self.set_text("")
+        self.set_description_mode(False)
+        self.editingFinished.emit()
 
 
-class ObjectComboBox(gtk.ComboBox):
+class CustomNode(object):  
+    def __init__(self, in_data):
+        self._data = in_data  
+  
+        self._columncount = len(self._data)
+        self._children = []  
+        self._parent = None  
+        self._row = 0  
+  
+    def data(self, in_column):  
+        if in_column >= 0 and in_column < len(self._data):  
+            return self._data[in_column]
 
-    def __init__(self, objects=[], initial=object):
-        self.model = gtk.ListStore(gobject.TYPE_PYOBJECT, str, str)
-        super(ObjectComboBox, self).__init__(self.model)
+    def setData(self, in_column, data):
+        self._data[in_column] = data
+  
+    def columnCount(self):  
+        return self._columncount  
+  
+    def childCount(self):  
+        return len(self._children)  
+  
+    def child(self, in_row):  
+        if in_row >= 0 and in_row < self.childCount():  
+            return self._children[in_row]  
 
-        cell = gtk.CellRendererPixbuf()
-        self.pack_start(cell, False)
-        self.add_attribute(cell, 'stock-id', 2)
-        cell = gtk.CellRendererText()
-        self.pack_start(cell, True)
-        self.add_attribute(cell, 'text', 1)
-        self.fill(objects, initial)
+    def parent(self):  
+        return self._parent  
+  
+    def row(self):  
+        return self._row  
+  
+    def addChild(self, in_child):  
+        in_child._parent = self  
+        in_child._row = len(self._children)  
+        self._children.append(in_child)  
+        self._columncount = max(in_child.columnCount(), self._columncount)  
+  
+  
+class CustomModel(QtCore.QAbstractItemModel):  
+    def __init__(self, in_nodes, header):
+        QtCore.QAbstractItemModel.__init__(self)  
+        self._root = CustomNode(header)  
+        for node in in_nodes:  
+            self._root.addChild(node)
+        self.header = header
 
-    def append(self, object):
-        if hasattr(object, 'get_image_id'):
-            stock_id = object.get_image_id()
-        else:
-            stock_id = ''
-        self.model.append((object, str(object), stock_id))
+    def getNode(self, index):
+        if index.isValid():
+            item = index.internalPointer()
+            if item:
+                return item
 
-    def fill(self, objects, initial=None):
-        self.model.clear()
-        if objects is not None:
-            for object in objects:
-                self.append(object)
-        if objects is not None:
-            if initial in objects:
-                self.set_active(objects.index(initial))
-            else:
-                self.set_active(0)
+        return self._root
 
-    def size(self):
-        return len(self.model)
+    def headerData(self, section, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self._root.data(section)
 
-    def get_all(self):
-        return [k[0] for k in self.model]
-
-    def get_current(self):
-        i = self.get_active()
-        if i >= 0 and i < len(self.model):
-            return self.model[i][0]
+        return None
+  
+    def rowCount(self, in_index):  
+        if in_index.isValid():  
+            return in_index.internalPointer().childCount()  
+        return self._root.childCount()  
+  
+    def addChild(self, in_node, in_parent):  
+        if not in_parent or not in_parent.isValid():  
+            parent = self._root  
+        else:  
+            parent = in_parent.internalPointer()  
+        parent.addChild(in_node)  
+  
+    def index(self, in_row, in_column, in_parent=None):  
+        if not in_parent or not in_parent.isValid():  
+            parent = self._root  
+        else:  
+            parent = in_parent.internalPointer()  
+      
+        if not QtCore.QAbstractItemModel.hasIndex(self, in_row, in_column, in_parent):  
+            return QtCore.QModelIndex()  
+      
+        child = parent.child(in_row)  
+        if child:  
+            return QtCore.QAbstractItemModel.createIndex(self, in_row, in_column, child)  
+        else:  
+            return QtCore.QModelIndex()  
+  
+    def parent(self, in_index):  
+        if in_index.isValid():  
+            p = in_index.internalPointer().parent()  
+            if p:  
+                return QtCore.QAbstractItemModel.createIndex(self, p.row(),0,p)  
+        return QtCore.QModelIndex()
+  
+    def columnCount(self, in_index):  
+        return self._root.columnCount()
+  
+    def data(self, in_index, role):  
+        if not in_index.isValid():
+            return None  
+        node = in_index.internalPointer()
+        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            # print in_index.column(), in_index.row(), role
+            return node.data(in_index.column())
+        elif role == QtCore.Qt.BackgroundRole:
+            # print "Font role"
+            return None
         return None
 
-
-class EntryDialog(gtk.Dialog):
-
-    def __init__(self, description, value, title="", parent=None):
-        flags = gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT
-        buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
-                   gtk.STOCK_OK, gtk.RESPONSE_ACCEPT)
-        gtk.Dialog.__init__(self, title, parent, flags, buttons)
-
-        hbox = gtk.HBox()
-        self.vbox.pack_start(hbox, padding=5)
-
-        hbox.pack_start(gtk.Label(description), False, False, padding=5)
-
-        self.entry = gtk.Entry()
-        self.entry.set_text(value)
-        hbox.pack_start(self.entry, False, False, padding=5)
-
-        self.show_all()
-
-    def run(self):
-        ret = gtk.Dialog.run(self)
-        value = self.entry.get_text()
-        self.destroy()
-        if ret == gtk.RESPONSE_ACCEPT:
-            return value
-        return None
+    def setData(self, in_index, value, role):
+        node = in_index.internalPointer()
+        if role == QtCore.Qt.EditRole:
+            current_value = node.data(in_index.column())
+            if current_value != value:
+                ret = node.setData(in_index.column(), value)
+                if ret:
+                    self.dataChanged.emit(in_index, in_index)
+                    print "Change done"
+                    return True
+        return False
 
 
-class Experience():
+class UI(QtGui.QWidget):
 
-    def add_spinner(self, box):
-        self.spinner = gtk.Spinner()
-        box.add(self.spinner)
-        gobject.idle_add(self.spinner.hide)
+    def __init__(self, xsize, ysize, title, parent=None, destroy_with_parent=True):
+        QtGui.QWidget.__init__(self, parent=parent)
+
+        # self.connect("destroy", self.__on_destroy)
+        self.size_hint = QtCore.QSize(xsize, ysize)
+        self.setMinimumSize(300, 200)
+        self.setWindowTitle(title)
+        # self.set_property("border-width", 5)
+        # self.set_transient_for(parent)
+        # if parent is not None:
+        #     self.connect("key-press-event", self.__on_key_press)
+        #     self.set_destroy_with_parent(destroy_with_parent)
+        # if parent is None and check_python_interactive():
+        #     self.connect('delete-event', self.hide_and_quit_on_delete)
+
+    # def __on_destroy(self, window):
+    #     if self.transient_parent is None:
+    #         gtk.main_quit()
+
+    # def __on_key_press(self, window, event):
+    #     if event.keyval == gtk.keysyms.Escape:
+    #         self.emit("delete-event", event)
+    #         # self.hide()
+
+    # def hide_and_quit_on_delete(self, window, event):
+    #     print "Hide on delete"
+    #     window.hide()
+    #     gtk.main_quit()
+    #     return True
+
+    def sizeHint(self):
+        return self.size_hint
+
+    def add_box(self, box):
+        self.setLayout(box)
+        return box
+
+    def start(self):
+        QtGui.QWidget.show(self)
+
+
+class Experience(object):
+
+    def __init__(self):
+        self.thread = None
+        self.mutex = QtCore.QMutex(mode=1)
+
+    # def add_spinner(self, box):
+    #     self.spinner = gtk.Spinner()
+    #     box.add(self.spinner)
+    #     gobject.idle_add(self.spinner.hide)
 
     def do_update(self, parameter_changed=None):
+        self.mutex.lock()
+        print "Start do update"
+        self.stopping()
         res = self.before_update(parameter_changed)
 
         if hasattr(self, 'spinner'):
@@ -498,9 +573,11 @@ class Experience():
             self.spinner.show()
 
         if res is not False:
-            thread = LongRunning(self.update, (parameter_changed), dict(),
+            self.thread = LongRunning(self.update, (parameter_changed), dict(),
                                  self.__after_update)
-            thread.start()
+            self.thread.start()
+        print "Done do update"
+        self.mutex.unlock()
 
     def before_update(self, changed):
         pass
@@ -517,37 +594,90 @@ class Experience():
     def after_update(self, result):
         pass
 
+    def stopping(self):
+        if self.thread is not None:
+            self.thread.cancel()
+            self.thread.wait()
 
-class LongRunning(threading.Thread):
+
+class LongRunning(QtCore.QThread):
 
     def __init__(self, fct, args, kwargs, cbk=None):
         self.fct = fct
         self.args = args
         self.kwargs = kwargs
         self.cbk = cbk
-        threading.Thread.__init__(self, target=fct, args=args, kwargs=kwargs)
+        self._is_alive = True
+        QtCore.QThread.__init__(self)
+
+    def is_alive(self):
+        return self._is_alive
+
+    def cancel(self):
+        self._is_alive = False        
 
     def run(self):
-        result = self.fct(self.args)
-        if self.cbk and (not isinstance(result, bool) or result is not False):
-            gobject.idle_add(self.cbk, result)
+        result = self.fct(self.args, self)
+        if self.is_alive() and self.cbk and (not isinstance(result, bool) or result is not False):
+            # gobject.idle_add(self.cbk, result)
+            self.cbk(result)
 
 
 class TestExperience(Experience):
 
     def __init__(self):
-        gui = UI(100, 100, "Wavelet Transform 2D")
-        bv = gui.add_box(VBox())
-        self.ctl = bv.add(HBox())
+        self.gui = UI(100, 100, "Wavelet Transform 2D")
+        bv = self.gui.add_box(VBox())
 
-        OpenImage(self.ctl, self)
+        self.pv = bv.add(PlotView())
+        bv.add(NavigationToolbar(self.pv))
 
-        gui.start()
+        ctl = bv.add(HBox())
+        t1 = TextParameter(ctl, self, "A:", "Test", max_lenght=8)
+        TextParameter(ctl, self, "B:", "Test")
+        ListParameter(ctl, self, "B:", ["A", "B", "C", "D", 5, 9, 10])
+        ScaleRangeParameter(ctl, self, "B:", -2, 10, 1, 5)
+        OpenImage(ctl, self)
+        UpdateButton(ctl, self)
+        ctl.add(EntryDescription("Put your text", n_chars=15))
+
+        self.update(t1)
+        self.gui.start()
 
     def update(self, changed):
-        print 'Update:', changed
+        print 'Update:', changed, changed.get()
+        self.pv.figure.clear()
+        ax = self.pv.figure.add_subplot(111)
+        ax.plot(np.linspace(0, 10) ** 2)
+
+        print "Done"
+
+
+def test_qt():
+    app = QtGui.QApplication(sys.argv)
+    # print erro_msg("This is a test")
+
+    gui = UI(400, 300, "This is a test")
+
+    vbox = VBox()
+    vbox.add(QtGui.QLabel('This is a test', gui))
+
+    vbox.add(QtGui.QPushButton('Press Me', gui))
+
+    gui.add_box(vbox)
+    gui.start()
+    print "Lets start"
+    app.exec_()
+
+
+def test_gui():
+    app = QtGui.QApplication(sys.argv)
+    test = TestExperience()
+    test.gui.start()
+    print "Lets start"
+    app.exec_()
+
 
 if __name__ == '__main__':
-    # dial = EntryDialog("Test", "value")
-    # print dial.run()
-    TestExperience()
+    # test_qt()
+    test_gui()

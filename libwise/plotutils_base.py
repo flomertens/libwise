@@ -20,6 +20,7 @@ from matplotlib.artist import ArtistInspector
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib.figure import Figure, SubplotParams
 from matplotlib.patches import PathPatch, Rectangle, Shadow
+from matplotlib.ticker import ScalarFormatter
 
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -62,7 +63,7 @@ all_markers = {'o': 'circle', 'D': 'diamond', 's': 'square', '*': 'star', 'h': '
 
 best_map_markers = ['o', 'D', 's', '*', 'h', '^', 'p']
 
-white = "#fffafa"
+white = "#FFFFFF"
 
 
 def hash_fill_between(ax, x, y1, y2=0, **kargs):
@@ -109,7 +110,7 @@ def twin_xaxis(ax, fct, fmt="%.3f"):
 
 def get_cmap(map, bad_color=white, bad_alpha=1):
     ''' bad color: color used for mask values'''
-    if isinstance(map, cm.ColorMap):
+    if isinstance(map, cm.colors.Colormap):
         return map
     cmap = cm.get_cmap(map)
     cmap.set_bad(color=bad_color, alpha=bad_alpha)
@@ -500,9 +501,13 @@ class ColorbarSetting(object):
         self.cmap = cmap
 
     def add_colorbar(self, mappable, ax):
-        cb = ax.get_figure().colorbar(mappable, ticks=self.ticks_locator, format=self.ticks_formatter,
+        fig = ax.get_figure()
+        cb = fig.colorbar(mappable, ticks=self.ticks_locator, format=self.ticks_formatter,
                             orientation=self.cb_position.get_orientation(), cax=self.cb_position.get_cb_axes(ax))
         self.cb_position.post_creation(cb)
+        if not hasattr(fig, '_plotutils_colorbars'):
+            fig._plotutils_colorbars = dict()
+        fig._plotutils_colorbars[ax] = cb
         return cb
 
     def get_cmap(self):
@@ -633,7 +638,7 @@ class BaseFigureStack(object):
             printer_preset = presetutils.RcPreset.load(preset)
             display_preset = presetutils.RcPreset.load("display")
 
-        for i, (figure, name) in enumerate(self.figures):
+        for i, figure in enumerate(self.figures):
             if preset is not None:
                 printer_preset.apply(figure)
             figure.tight_layout(pad=0.3)
@@ -666,7 +671,7 @@ class BaseFigureStack(object):
             printer_preset = presetutils.RcPreset.load(preset)
             display_preset = presetutils.RcPreset.load("display")
 
-        for figure, name in self.figures:
+        for figure in self.figures:
             if preset is not None:
                 printer_preset.apply(figure)
             figure.tight_layout(pad=0.3)
@@ -695,21 +700,15 @@ class BaseFigureStack(object):
         if figure is None:
             figure = BaseCustomFigure(dpi=75, **self.kwargs)
         if position is not None:
-            self.figures.insert(position, (figure, name))
+            self.figures.insert(position, figure)
         else:
-            self.figures.append((figure, name))
+            self.figures.append(figure)
         return figure
 
     def add_replayable_figure(self, name, draw_fct, *args):
         figure = ReplayableFigure(draw_fct, *args, dpi=75)
         self.add_figure(name, figure)
         return figure
-
-    def get_figure(self, name):
-        for figure, fig_name in self.figures:
-            if name == fig_name:
-                return figure
-        return None
 
     def add_subplots(self, name="", nrows=1, ncols=1, n=None, sharex=False, sharey=False,
                      sharex_hspace=0.15, sharey_wspace=0.15, axisartist=True, reshape=True):
@@ -728,6 +727,6 @@ class BaseFigureStack(object):
         pass
 
     def destroy(self):
-        for figure, fig_name in self.figures:
+        for figure in self.figures:
             figure.clf()
             figure.canvas = None

@@ -16,41 +16,45 @@ import waveletsui
 class WaveletTransform2D(uiutils.Experience):
 
     def __init__(self, img, wavelet_families=wavelets.get_all_wavelet_families()):
-        gui = uiutils.UI(500, 500, "Wavelet Transform 2D")
-        bv = gui.add_box(uiutils.VBox())
+        uiutils.Experience.__init__(self)
+        self.gui = uiutils.UI(1000, 600, "Wavelet Transform 2D")
+        bv = self.gui.add_box(uiutils.VBox())
         self.ctl = bv.add(uiutils.HBox())
         self.view = bv.add(plotutils.BaseCustomCanvas(), True)
-        bv.add(plotutils.ExtendedNavigationToolbar(self.view, gui))
+        bv.add(plotutils.ExtendedNavigationToolbar(self.view, self.gui))
 
         self.img = uiutils.OpenImage(self.ctl, self, img=img)
         self.wavelet = waveletsui.WaveletSelector(self.ctl, self,
-                                                  wavelet_families)
+                                                  wavelet_families, initial=wavelets.get_wavelet("b3"))
         self.scale = uiutils.ScaleRangeParameter(self.ctl, self, "Scale:", 1, 6, 1, 2)
         decs = {"DWT": wtutils.dwt, "UWT": wtutils.uwt, "UIWT": wtutils.uiwt, "UIMWT": wtutils.uimwt}
         exts = {"Symmetry": "symm", "Zero": "zero", "Periodic": "wrap"}
 
         self.dec = uiutils.ListParameter(self.ctl, self, "Transform:", decs)
-        self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts)
+        self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts, "symm")
 
-        self.add_spinner(self.ctl)
+        # self.add_spinner(self.ctl)
 
         self.ax1, self.ax2 = self.view.figure.subplots(1, 2)
 
         self.current_wavedec = None
 
-        gui.start()
+        self.gui.show()
+        self.do_update()
 
     def before_update(self, changed):
         if not isinstance(self.wavelet.get(), str) and isinstance(self.img.get(), imgutils.Image):
             maxs = min(8, self.wavelet.get().get_max_level(self.img.get().data) + 2)
             self.scale.set_max(maxs)
 
-    def update(self, changed):
+    def update(self, changed, thread):
         if changed is not self.scale:
             scale_max = self.scale.get_max()
             data = self.img.get().data
             res = wtutils.wavedec(data, self.wavelet.get(), scale_max,
-                                  dec=self.dec.get(), boundary=self.ext.get())
+                                  dec=self.dec.get(), boundary=self.ext.get(), thread=thread)
+            if res == None:
+                return False
             self.current_wavedec = [imgutils.Image.from_image(self.img.get(), k) for k in res]
 
         return self.current_wavedec
@@ -67,8 +71,8 @@ class WaveletTransform2D(uiutils.Experience):
         self.view.draw()
 
 
-if __name__ == '__main__':
-    img = imgutils.galaxy()[::-1]
+def main():
+    # img = imgutils.galaxy()[::-1]
 
     # def get_img(e1_coord, e2_coord):
     #     img = imgutils.cylinder_fct(500, 100., lambda y: 20 * np.sin(y/100.))
@@ -100,11 +104,16 @@ if __name__ == '__main__':
 
     # img = img[480:600, 480:600]
 
-    # img = imgutils.lena()[::-1]
+    img = imgutils.galaxy()[::-1]
 
     # from WaveletDenoise import Denoise
     # denoiser = Denoise('db1', 3, dec=wtutils.uwt, rec=wtutils.uwt_inv)
     # estimated_noise_sigma = nputils.k_sigma_noise_estimation(img)
     # denoised = denoiser.do(img, noise_sigma=estimated_noise_sigma, threashold_factor=3)
 
+    app = uiutils.QtGui.QApplication([])
     w = WaveletTransform2D(imgutils.Image(img))
+    app.exec_()
+
+if __name__ == '__main__':
+    main()

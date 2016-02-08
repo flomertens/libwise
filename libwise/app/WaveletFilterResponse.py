@@ -7,24 +7,26 @@ from libwise import signalutils, uiutils, plotutils, nputils, wtutils, wavelets
 class WaveletFilterResponse(uiutils.Experience):
 
     def __init__(self, wavelet_families=wavelets.get_all_wavelet_families()):
-        gui = uiutils.UI(900, 500, "Wavelet Filter Bank Response")
+        uiutils.Experience.__init__(self)
+        self.gui = uiutils.UI(900, 500, "Wavelet Filter Bank Response")
 
-        box = gui.add_box(uiutils.VBox())
+        box = self.gui.add_box(uiutils.VBox())
 
         self.figure = plotutils.ReplayableFigure(self.do_plot, None)
         self.view = box.add(plotutils.FigureCanvas(self.figure), True)
 
         ctl = box.add(uiutils.HBox())
-        ctl.add(plotutils.ExtendedNavigationToolbar(self.view, gui), True)
+        ctl.add(plotutils.ExtendedNavigationToolbar(self.view, self.gui), True)
 
         self.wavelet = waveletsui.WaveletSelector(ctl, self,
-                                                  wavelet_families)
+                                                  wavelet_families, initial=wavelets.get_wavelet("b3"))
 
         self.dx = uiutils.SpinRangeParameter(ctl, self, "dx", -10, 10, 1, 0)
 
-        self.add_spinner(ctl)
+        # self.add_spinner(ctl)
 
-        gui.start()
+        self.gui.show()
+        self.do_update()
 
     def do_plot(self, figure, result):
         if result is None:
@@ -63,7 +65,6 @@ class WaveletFilterResponse(uiutils.Experience):
             scale.append(intensities[i].max())
 
         ticks = [2 ** k for k in range(nscale)]
-        print ticks
         ax.set_xticks(ticks)
         ax.set_xticklabels([str(k) for k in ticks])
         # ax.set_xticks(widthmax)
@@ -85,10 +86,12 @@ class WaveletFilterResponse(uiutils.Experience):
         fct = nputils.LinearFct.fit(x, fwhm)
         ax2.plot(x, fct(x), label=fct.get_text_equ())
 
+        ax2.set_xlabel("Scale")
+        ax2.set_ylabel("FWHM / Width max")
+
         ax2.legend()
 
-    def update(self, changed):
-        print "Done update"
+    def update(self, changed, thread):
         wavelet = self.wavelet.get()
 
         if wavelet.get_name() in ["triangle", "triangle2", 'b1', "b3"]:
@@ -121,5 +124,11 @@ class WaveletFilterResponse(uiutils.Experience):
         self.view.draw()
 
 
-if __name__ == '__main__':
+def main():
+    app = uiutils.QtGui.QApplication([])
     win = WaveletFilterResponse()
+    app.exec_()
+
+
+if __name__ == '__main__':
+    main()

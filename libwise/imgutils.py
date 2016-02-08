@@ -259,7 +259,6 @@ def fast_sorted_fits(files, key="DATE-OBS", start_date=None, end_date=None, filt
         filter = nputils.date_filter(start_date=start_date, end_date=end_date, filter_dates=filter_dates)
     for file in files:
         if is_fits(file):
-            header = FastHeaderReader(file)
             date = get_fits_epoch_fast(file)
             if not filter(date):
                 continue
@@ -280,6 +279,8 @@ def is_fits(file):
 
 
 def guess_and_open(file, fits_extension=0, check_stack_img=False):
+    if isinstance(file, Image):
+        return file
     if is_fits(file):
         if check_stack_img:
             hdr = FastHeaderReader(file)
@@ -1196,8 +1197,8 @@ class FitsImage(Image):
             data = fits[extension].data
         else:
             raise ValueError("Not supported: naxis %s" % self.header['NAXIS'])
-        # if float64:
-        #     data = data.astype(np.float64)
+        if float64:
+            data = data.astype(np.float64)
 
         self.wcs = pywcs.WCS(self.header, naxis=2, fobj=fits)
         if "DATE-OBS" in self.zero_header:
@@ -1636,7 +1637,7 @@ class Region(object):
 
         pyregion = self.get_pyregion()
         color = pyregion[0].attr[1].get("color", "blue")
-        if hasattr( color):
+        if hasattr(plotutils, color):
             color = getattr(plotutils, color)
         return color
 

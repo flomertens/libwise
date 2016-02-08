@@ -8,9 +8,10 @@ import numpy as np
 class WaveletBrowser(uiutils.Experience):
 
     def __init__(self, wavelet_families=wavelets.get_all_wavelet_families()):
-        gui = uiutils.UI(900, 500, "Wavelet Browser")
+        uiutils.Experience.__init__(self)
+        self.gui = uiutils.UI(900, 500, "Wavelet Browser")
 
-        box = gui.add_box(uiutils.VBox())
+        box = self.gui.add_box(uiutils.VBox())
         self.view = box.add(plotutils.BaseCustomCanvas(), True)
         ctl = box.add(uiutils.HBox())
 
@@ -20,9 +21,10 @@ class WaveletBrowser(uiutils.Experience):
 
         self.ax1, self.ax2 = self.view.figure.subplots(1, 2)
 
-        gui.start()
+        self.gui.show()
+        self.do_update()
 
-    def update(self, changed):
+    def update(self, changed, thread):
         result = self.wavelet.get().get_wavelet_fct(self.level.get())
         result_tf = self.wavelet.get().get_tf_wavelet_fct(self.level.get(), - 4, 4)
 
@@ -68,5 +70,12 @@ class WaveletBrowser(uiutils.Experience):
 
         self.view.draw()
 
-if __name__ == '__main__':
+
+def main():
+    app = uiutils.QtGui.QApplication([])
     win = WaveletBrowser()
+    app.exec_()
+
+
+if __name__ == '__main__':
+    main()

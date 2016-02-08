@@ -12,12 +12,13 @@ from libwise import uiutils, plotutils, signalutils, nputils, wavelets, wtutils
 class WaveletTransform(uiutils.Experience):
 
     def __init__(self, t, x, wavelet_families=wavelets.get_all_wavelet_families()):
-        gui = uiutils.UI(500, 500, "Wavelet Transform")
-        bv = gui.add_box(uiutils.VBox())
+        uiutils.Experience.__init__(self)
+        self.gui = uiutils.UI(1000, 500, "Wavelet Transform")
+        bv = self.gui.add_box(uiutils.VBox())
 
         self.ctl = bv.add(uiutils.HBox())
         self.view = bv.add(plotutils.BaseCustomCanvas(), True)
-        bv.add(plotutils.ExtendedNavigationToolbar(self.view, gui))
+        bv.add(plotutils.ExtendedNavigationToolbar(self.view, self.gui))
 
         self.wavelet = waveletsui.WaveletSelector(self.ctl, self,
                                                   wavelet_families)
@@ -28,23 +29,20 @@ class WaveletTransform(uiutils.Experience):
         self.dec = uiutils.ListParameter(self.ctl, self, "Transform:", decs)
         self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts)
 
-        self.add_spinner(self.ctl)
+        # self.add_spinner(self.ctl)
 
         self.x = x
         self.t = t
 
-        gui.start()
+        self.gui.show()
+        self.do_update()
 
     def before_update(self, changed):
         self.scale.set_max(self.wavelet.get().get_max_level(self.x))
 
-    def update(self, changed):
+    def update(self, changed, thread):
         return wtutils.wavedec(self.x, self.wavelet.get(), self.scale.get(),
-                               dec=self.dec.get(), boundary=self.ext.get())
-        # res = pywt.swt(self.x, self.wavelet.get().get_name(), level=self.scale.get())
-        # return [d for (d, a) in res][::-1]
-        res = pywt.wavedec(self.x, self.wavelet.get().get_name(), level=self.scale.get())
-        return res[1:][::-1]
+                               dec=self.dec.get(), boundary=self.ext.get(), thread=thread)
 
     def after_update(self, result):
         titles = ["Original"] + \
@@ -53,11 +51,6 @@ class WaveletTransform(uiutils.Experience):
         plots = [self.x] + list(result)
 
         self.view.figure.clear()
-        # axs = self.view.figure.subplots(nrows=len(plots))
-
-        # for plot, title, ax in zip(plots, titles, axs):
-        #     ax.plot(plot)
-        #     ax.set_title(title)
 
         ax = self.view.figure.subplots()
 
@@ -68,7 +61,8 @@ class WaveletTransform(uiutils.Experience):
         ax.legend()
         self.view.draw()
 
-if __name__ == '__main__':
+
+def main():
     # t = np.arange(0, 10, 0.01)
     # x = np.sin(2 * t) + np.cos(20 * t) + np.sqrt(t)
     # x = signalutils.linear_chirp(t, 1, 20, 0, 0) - \
@@ -87,4 +81,10 @@ if __name__ == '__main__':
 
     # x = np.cos(np.arange(100) / 2)
 
+    app = uiutils.QtGui.QApplication([])
     w = WaveletTransform(np.arange(500), x)
+    app.exec_()
+
+
+if __name__ == '__main__':
+    main()
