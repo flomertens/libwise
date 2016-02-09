@@ -8,7 +8,7 @@ import numpy as np
 from scipy.signal import convolve2d
 
 from libwise import nputils
-from libwise import nputils_c
+# from libwise import nputils_c
 from libwise.nputils import assert_equal, assert_raise
 
 
@@ -190,37 +190,37 @@ def test_index():
                  l[:, 1:-2:-1])
 
 
-def test_get_extended_index():
-    data = [
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["zero"], 5, 5],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["zero"], -2, -2],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["zero"], 12, 12],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 5, 5],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 0, 0],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], -1, 0],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], -3, 2],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], -4, 3],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 10, 9],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 11, 8],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 12, 7],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 15, 4],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 5, 5],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 0, 0],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -1, 9],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -2, 8],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -3, 7],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -5, 5],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 9, 9],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 10, 0],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 11, 1],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 12, 2],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 13, 3],
-        [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 15, 5],
-        [11, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 11, 10]]
-    for (size, ext_size, ext_type, index, expected) in data:
-        res = nputils_c.get_extended_index(index, size, ext_size, ext_type)
-        print size, ext_size, ext_type, index, expected, res
-        assert res == expected
+# def test_get_extended_index():
+#     data = [
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["zero"], 5, 5],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["zero"], -2, -2],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["zero"], 12, 12],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 5, 5],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 0, 0],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], -1, 0],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], -3, 2],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], -4, 3],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 10, 9],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 11, 8],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 12, 7],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 15, 4],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 5, 5],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 0, 0],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -1, 9],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -2, 8],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -3, 7],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], -5, 5],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 9, 9],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 10, 0],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 11, 1],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 12, 2],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 13, 3],
+#         [10, 4, nputils_c.CONV_BOUNDARY_MAP["wrap"], 15, 5],
+#         [11, 4, nputils_c.CONV_BOUNDARY_MAP["symm"], 11, 10]]
+#     for (size, ext_size, ext_type, index, expected) in data:
+#         res = nputils_c.get_extended_index(index, size, ext_size, ext_type)
+#         print size, ext_size, ext_type, index, expected, res
+#         assert res == expected
 
 
 def test_convolve():

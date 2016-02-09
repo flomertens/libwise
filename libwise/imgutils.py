@@ -1188,7 +1188,10 @@ class FitsImage(Image):
         self.freq_key = freq_key
         self.beam = None
         self.header = fits[extension].header
-        self.zero_header = fits[0].header
+        if extension is not 0:
+            self.zero_header = fits[0].header
+        else:
+            self.zero_header = self.header
         self.file = file
 
         if self.header['NAXIS'] == 4:

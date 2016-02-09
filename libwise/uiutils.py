@@ -511,6 +511,9 @@ class CustomModel(QtCore.QAbstractItemModel):
 class UI(QtGui.QWidget):
 
     def __init__(self, xsize, ysize, title, parent=None, destroy_with_parent=True):
+        if QtGui.QApplication.startingUp():
+            self._app = QtGui.QApplication(sys.argv)
+
         QtGui.QWidget.__init__(self, parent=parent)
 
         # self.connect("destroy", self.__on_destroy)
@@ -549,13 +552,14 @@ class UI(QtGui.QWidget):
 
     def start(self):
         QtGui.QWidget.show(self)
+        QtGui.QApplication.instance().exec_()
 
 
 class Experience(object):
 
     def __init__(self):
         self.thread = None
-        self.mutex = QtCore.QMutex(mode=1)
+        self.mutex = QtCore.QMutex()
 
     # def add_spinner(self, box):
     #     self.spinner = gtk.Spinner()
@@ -563,10 +567,14 @@ class Experience(object):
     #     gobject.idle_add(self.spinner.hide)
 
     def do_update(self, parameter_changed=None):
-        self.mutex.lock()
+        if not self.mutex.tryLock():
+            # call to do_update() caused by parameter set in before_update() -> ignore it
+            return
+
         print "Start do update"
         self.stopping()
         res = self.before_update(parameter_changed)
+        # traceback.print_stack()
 
         if hasattr(self, 'spinner'):
             self.spinner.start()

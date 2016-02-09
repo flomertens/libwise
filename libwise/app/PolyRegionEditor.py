@@ -117,7 +117,7 @@ class PolyRegionEditor(uiutils.UI):
         self.load_default()
 
         self.canvas.setFocus()
-        self.show()
+        uiutils.UI.start(self)
 
     def on_load_clicked(self, bn):
         filename = uiutils.open_file(parent=self, current_folder=self.current_folder)
@@ -262,10 +262,8 @@ def test_editor():
 
     img = imgutils.FitsImage(fits)
 
-    app = uiutils.QtGui.QApplication([])
     editor = PolyRegionEditor(img, current_folder=os.path.dirname(fits))
     editor.start()
-    app.exec_()
 
 
 def fix_crval(region_file, stack_image_file, fits_new_crval_file):

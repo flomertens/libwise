@@ -23,16 +23,15 @@ import numpy as np
 from scipy import optimize
 from scipy import interpolate
 from scipy.ndimage.interpolation import map_coordinates
+from scipy.signal import convolve2d as scipy_convolve2d
+from scipy.ndimage.filters import convolve1d as scipy_convolve1d
 from scipy.optimize import leastsq, curve_fit
 from scipy.ndimage.morphology import grey_dilation
 from scipy.ndimage.measurements import center_of_mass
-
 from uncertainties import ufloat, umath, unumpy
 from uncertainties import UFloat
 
 from astropy.time import Time
-
-import nputils_c
 
 # inline import:
 # heavy and rarely used: from scipy import signal
@@ -42,6 +41,11 @@ CONV_BOUNDARY_MAP = {"zero": "fill",
                      "symm": "symm",
                      "wrap": "wrap",
                      "border": "border"}
+
+CONV_BOUNDARY_MAP2 = {"zero": "constant",
+                      "symm": "reflect",
+                      "wrap": "wrap",
+                      "border": "border"}
 
 K_CONV = 1.2E-8
 
@@ -1367,7 +1371,26 @@ def fill_extension(a, nright, nleft, fillvalue=0, axis=None):
     return res
 
 
-def convolve(a, v, boundary='symm', axis=None, mode='full', using_fft=True):
+def _convolve_1d_full(a, v, boundary='symm', mode='full'):
+    res = scipy_convolve2d([a], [v], mode=mode, boundary=CONV_BOUNDARY_MAP[boundary])
+    return res[0]
+
+
+def _convolve_1d(a, v, boundary='symm', mode='same', axis=0):
+    assert mode in ['same', 'valid']
+    assert v.ndim == 1
+    res = scipy_convolve1d(a, v, mode=CONV_BOUNDARY_MAP2[boundary], axis=axis)
+    
+    if mode == 'valid':
+        l = (len(v) - 1) / 2
+        r = (len(v) - 1) - l
+        index = [slice(None)] * res.ndim
+        index[axis] = slice(l, -r)
+        res = res[index]
+    return res
+
+
+def convolve(a, v, boundary='symm', axis=None, mode='full', using_fft=True, using_scipy=True):
     '''
     Convolve signal a with kernel v.
     If a is 1D, perform a simple convolution
@@ -1405,33 +1428,35 @@ def convolve(a, v, boundary='symm', axis=None, mode='full', using_fft=True):
             if using_fft:
                 result = fftconvolve(a, v, mode=mode)
             else:
-                from scipy import signal
-
-                result = signal.convolve2d(a, v, mode, CONV_BOUNDARY_MAP[boundary])
+                result = scipy_convolve2d(a, v, mode=mode, boundary=CONV_BOUNDARY_MAP[boundary])
         else:
             raise ValueError("Wrong dimension for v")
     else:
         if a.ndim == 1:
-            # result = np.convolve(a, v, mode=mode)
-            result = nputils_c.convolve(a, v, boundary, mode)
+            if mode == 'full':
+                result = _convolve_1d_full(a, v, boundary=boundary, mode=mode)
+            else:
+                result = _convolve_1d(a, v, mode=mode, boundary=boundary, axis=0)
         elif a.ndim == 2:
-            # We don't know yet the dimension of the array, defer the
-            # initialization
-            result = None
-            view = a
-            # TODO: better way to handle that: transpose with axis and -1 flip
-            # do same transposition at the end
-            if axis == 0:
-                view = a.T
-            for i in range(view.shape[0]):
-                # line_conv = np.convolve(view[i], v, mode=mode)
-                line_conv = nputils_c.convolve(view[i], v, boundary, mode)
-                if result is None:
-                    result = np.zeros(
-                        (view.shape[0], len(line_conv)), dtype=a.dtype)
-                result[i, :] = line_conv
-            if axis == 0:
-                result = result.T
+            if mode != 'full':
+                result = _convolve_1d(a, v, mode=mode, boundary=boundary, axis=axis)
+            else:
+                # We don't know yet the dimension of the array, defer the
+                # initialization
+                result = None
+                view = a
+                # TODO: better way to handle that: transpose with axis and -1 flip
+                # do same transposition at the end
+                if axis == 0:
+                    view = a.T
+                for i in range(view.shape[0]):
+                    line_conv = _convolve_1d_full(view[i], v, mode=mode, boundary=boundary)
+                    if result is None:
+                        result = np.zeros(
+                            (view.shape[0], len(line_conv)), dtype=a.dtype)
+                    result[i, :] = line_conv
+                if axis == 0:
+                    result = result.T
         else:
             raise ValueError("Wrong dimension for a: %s" % a.ndim)
 

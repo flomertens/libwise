@@ -13,7 +13,7 @@ from plotutils_noui import FigureStack as FigureStackNoUI
 
 
 def test_figure_stack():
-    app = QtGui.QApplication([])
+    # app = QtGui.QApplication([])
     stack = FigureStack(fixed_aspect_ratio=False)
 
     fig, axs = stack.add_subplots("Random", n=2)
@@ -46,7 +46,7 @@ def test_figure_stack():
     stack.add_replayable_figure("Plot", do_plot)
 
     stack.show()
-    app.exec_()
+    # app.exec_()
 
 
 def test_projection():
@@ -63,7 +63,6 @@ def test_projection():
 
 
 def test_save_plot():
-    app = QtGui.QApplication([])
 
     def draw_fct(figure):
         ax1 = figure.subplots(nrows=1)
@@ -78,8 +77,7 @@ def test_save_plot():
     # draw_fct(fig)
 
     w = SaveFigure(fig, auto_dpi=True)
-    w.show()
-    app.exec_()
+    w.start()
 
 
 def test_plot():
@@ -274,22 +272,26 @@ def test_lmc():
     import mpl_toolkits.axisartist.angle_helper as angle_helper
 
     stack = FigureStack()
-    fig, ax = stack.add_subplots()
+    fig, ax = stack.add_subplots("LMC")
 
     lmc = imgutils.FitsImage(os.path.expanduser("~/data/lmc/lmc_bothun_R_ast.fits"))
     # lmc = imgutils.FitsImage(os.path.expanduser("~/data/crab/H1-FL.FITS"))
 
     # lmc.rotate(np.radians(60), spline_order=0, smooth_len=0)
     # lmc.resize([600, 600])
-
     prj = lmc.get_projection(relative=False, unit=imgutils.u.deg, center='center')
 
-    imshow_image(ax, lmc, projection=prj)
-    update_grid_helper(ax, tick_formatter1=angle_helper.FormatterHMS(), tick_formatter2=angle_helper.FormatterDMS(),
-                           grid_locator1=angle_helper.LocatorHMS(4), grid_locator2=angle_helper.LocatorDMS(4))
-    # ax._grid_helper.grid_finder.update(tick_formatter1=angle_helper.FormatterDMS(), tick_formatter2=angle_helper.FormatterDMS())
-    # switch_axis(ax)
-    # [k.toggle(all=True) for k in ax.axis.values()]
+    def do_plot_lmc(ax):
+        imshow_image(ax, lmc, projection=prj)
+        update_grid_helper(ax, tick_formatter1=angle_helper.FormatterHMS(), tick_formatter2=angle_helper.FormatterDMS(),
+                               grid_locator1=angle_helper.LocatorHMS(4), grid_locator2=angle_helper.LocatorDMS(4))
+
+    do_plot_lmc(ax)
+
+    def do_plot(fig):
+        do_plot_lmc(fig.subplots())
+
+    stack.add_replayable_figure("LMC replayable", do_plot)
 
     stack.show()
 
@@ -309,7 +311,8 @@ def test_m87():
 
 
 if __name__ == '__main__':
-    test_save_plot()
+    # test_figure_stack()
+    # test_save_plot()
     # test_lmc()
     # test_m87()
     # test_markers()
@@ -318,6 +321,8 @@ if __name__ == '__main__':
     # test_noui()
 
     # for i in range(10):
-    #     import gc
-    #     test_lmc()
-    #     gc.collect()
+    # import gc
+    test_lmc()
+
+    # from meliae import scanner
+    # scanner.dump_all_objects(os.path.expanduser('~/memory.json'))

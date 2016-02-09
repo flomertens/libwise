@@ -111,9 +111,8 @@ def main():
     # estimated_noise_sigma = nputils.k_sigma_noise_estimation(img)
     # denoised = denoiser.do(img, noise_sigma=estimated_noise_sigma, threashold_factor=3)
 
-    app = uiutils.QtGui.QApplication([])
     w = WaveletTransform2D(imgutils.Image(img))
-    app.exec_()
+    w.gui.start()
 
 if __name__ == '__main__':
     main()

@@ -72,9 +72,8 @@ class WaveletBrowser(uiutils.Experience):
 
 
 def main():
-    app = uiutils.QtGui.QApplication([])
     win = WaveletBrowser()
-    app.exec_()
+    win.gui.start()
 
 
 if __name__ == '__main__':

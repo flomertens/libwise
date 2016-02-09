@@ -83,11 +83,12 @@ class Denoise(object):
 class WaveletDenoise(uiutils.Experience):
 
     def __init__(self, img):
+        self.gui = uiutils.UI(900, 600, "Wavelet Denoiser 2D")
+
         uiutils.Experience.__init__(self)
         wavelet_families=wavelets.get_all_wavelet_families()
         self.boundary = "symm"
 
-        self.gui = uiutils.UI(900, 600, "Wavelet Denoiser 2D")
         bv = self.gui.add_box(uiutils.VBox())
         self.ctl = bv.add(uiutils.HBox())
         self.view = bv.add(plotutils.BaseCustomCanvas(), True)
@@ -162,10 +163,9 @@ class WaveletDenoise(uiutils.Experience):
 
 
 def main():
-    app = uiutils.QtGui.QApplication([])
     plt.gray()
-    WaveletDenoise(imgutils.Image(imgutils.lena()[::-1]))
-    app.exec_()
+    exp = WaveletDenoise(imgutils.Image(imgutils.lena()[::-1]))
+    exp.gui.start()
 
 
 if __name__ == '__main__':

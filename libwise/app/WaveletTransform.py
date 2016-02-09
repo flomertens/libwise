@@ -81,9 +81,8 @@ def main():
 
     # x = np.cos(np.arange(100) / 2)
 
-    app = uiutils.QtGui.QApplication([])
     w = WaveletTransform(np.arange(500), x)
-    app.exec_()
+    w.gui.start()
 
 
 if __name__ == '__main__':

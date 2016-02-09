@@ -89,9 +89,8 @@ def uwt_inv(a, d, wavelet, boundary, level, initial_signal=None, axis=None):
 def uiwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
     hkd = nputils.atrou(get_wavelet_obj(wavelet).get_dec_hk(), pow(2, level))
 
-    a = nputils.convolve(signal, hkd, boundary, axis=axis)
+    a = nputils.convolve(signal, hkd, boundary, axis=axis, mode='same')
 
-    a = nputils.resize_like(a, signal, 'center')
     d = signal - a
 
     return (a, d)
@@ -100,12 +99,8 @@ def uiwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
 def uimwt(signal, wavelet, boundary, level, initial_signal=None, axis=None):
     hkd = nputils.atrou(get_wavelet_obj(wavelet).get_dec_hk(), pow(2, level))
 
-    a = nputils.convolve(signal, hkd, boundary, axis=axis)
-
-    a = nputils.resize_like(a, signal, 'center')
-
-    a2 = nputils.convolve(a, hkd, boundary, axis=axis)
-    a2 = nputils.resize_like(a2, signal, 'center')
+    a = nputils.convolve(signal, hkd, boundary, axis=axis, mode='same')
+    a2 = nputils.convolve(a, hkd, boundary, axis=axis, mode='same')
 
     d = signal - a2
 

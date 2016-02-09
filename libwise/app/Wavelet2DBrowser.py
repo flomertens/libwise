@@ -53,7 +53,11 @@ class Wavelet2DBrowser(uiutils.Experience):
 
         self.view.draw()
 
-if __name__ == '__main__':
-    app = uiutils.QtGui.QApplication([])
+
+def main():
     win = Wavelet2DBrowser()
-    app.exec_()
+    win.gui.start()
+
+
+if __name__ == '__main__':
+    main()

@@ -125,9 +125,8 @@ class WaveletFilterResponse(uiutils.Experience):
 
 
 def main():
-    app = uiutils.QtGui.QApplication([])
     win = WaveletFilterResponse()
-    app.exec_()
+    win.gui.start()
 
 
 if __name__ == '__main__':

@@ -384,11 +384,10 @@ class PlotImageStats(AbstractTwoPointsRequest):
         self.canvas.figure.draw_artist(self.rect2)
 
 
-class StatsWindow(QtGui.QWidget):
+class StatsWindow(uiutils.UI):
 
     def __init__(self, parent, canvas):
-        QtGui.QWidget.__init__(self)
-        self.setWindowTitle("Statistics")
+        uiutils.UI.__init__(self, 600, 500, "Statistics")
 
         self.setLayout(QtGui.QVBoxLayout())
         self.canvas = canvas
@@ -463,15 +462,13 @@ class StatsWindow(QtGui.QWidget):
         self.canvas.update()
 
 
-class BaseFigureWindow(QtGui.QWidget):
+class BaseFigureWindow(uiutils.UI):
 
     def __init__(self, figure=None, name="", parent=None, extended_toolbar=True):
-        QtGui.QWidget.__init__(self)
-        self.setWindowTitle(name)
-
+        uiutils.UI.__init__(self, 800, 500, name)
         self.setLayout(QtGui.QVBoxLayout())
 
-        # self.tooltip_manager = TooltipManager(selflayou t.)
+        self.tooltip_manager = TooltipManager(self)
 
         if figure is None:
             figure = BaseCustomFigure()
@@ -491,12 +488,10 @@ class BaseFigureWindow(QtGui.QWidget):
         self.layout().addWidget(figure.navigation)
         self.figure.canvas.draw()
 
-    #     self.connect("delete-event", self.on_destroy)
-
-    # def on_destroy(self, event, window):
-    #     self.figure.clf()
-    #     # self.tooltip_manager.destroy()
-    #     return False
+    def closeEvent(self, event):
+        self.tooltip_manager.release()
+        self.deleteLater()
+        uiutils.UI.closeEvent(self, event)
 
     # def show(self):
     #     self.start()
@@ -526,7 +521,7 @@ class ProfileWindow(BaseFigureWindow):
 
     def closeEvent(self, event):
         self.closeRequested.emit()
-        return BaseFigureWindow.closeEvent(self, event)
+        BaseFigureWindow.closeEvent(self, event)
 
     def get_figure(self):
         return self.figure
@@ -605,11 +600,9 @@ class IntensityFigureTooltip(BaseFigureTooltip):
 class TooltipManager:
 
     def __init__(self, window):
-        # self.tooltip = Tooltip()
         self.tooltips = dict()
         self.current_figure = None
         self.cid_motion = None
-        # window.connect("delete-event", self.on_window_delete)
 
     def set_current_figure(self, figure):
         self.current_figure = figure
@@ -631,6 +624,10 @@ class TooltipManager:
             self.current_figure.canvas.setToolTip(text)
         else:
             self.current_figure.canvas.setToolTip("")
+
+    def release(self):
+        if self.cid_motion is not None and self.current_figure is not None:
+            self.current_figure.canvas.mpl_disconnect(self.cid_motion)
 
 
 class ExtendedNavigationToolbar(NavigationToolbar):
@@ -856,13 +853,12 @@ class TreeQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
         return True
 
 
-class PresetEditor(QtGui.QWidget):
+class PresetEditor(uiutils.UI):
 
     changed = QtCore.pyqtSignal() 
 
     def __init__(self, preset):
-        QtGui.QWidget.__init__(self) 
-        self.setWindowTitle("Preset Editor: %s" % preset.get_name())
+        uiutils.UI.__init__(self, 400, 350, "Preset Editor: %s" % preset.get_name())
 
         self.preset = preset
         self.source_model = PresetTreeModel(preset)
@@ -899,9 +895,6 @@ class PresetEditor(QtGui.QWidget):
         ctl.addWidget(self.save_bn)
 
         # self.model_filter.set_visible_func(self.match_func)
-
-    def sizeHint(self):
-        return QtCore.QSize(380, 350)
 
     def match_func(self, model, iter):
         query = self.filter_entry.get_text()
@@ -954,11 +947,10 @@ class PresetEditor(QtGui.QWidget):
         self.changed.emit()
 
 
-class SaveFigure(QtGui.QWidget):
+class SaveFigure(uiutils.UI):
 
     def __init__(self, figure, auto_dpi=True, parent=None):
-        QtGui.QWidget.__init__(self)
-        self.setWindowTitle("Save plot")
+        uiutils.UI.__init__(self, 800, 500, "Save plot")
         self.figure = figure
 
         vbox = QtGui.QVBoxLayout()
@@ -1051,8 +1043,8 @@ class SaveFigure(QtGui.QWidget):
         # From matplotlib/backends/backend_qt5.py
         allaxes = self.figure.get_axes()
         if not allaxes:
-            QtGui.QtWidgets.QMessageBox.warning(
-                self.parent, "Error", "There are no axes to edit.")
+            QtGui.QMessageBox.warning(
+                None, "Error", "There are no axes to edit.")
             return
         if len(allaxes) == 1:
             axes = allaxes[0]
@@ -1065,23 +1057,21 @@ class SaveFigure(QtGui.QWidget):
                         "<anonymous {} (id: {:#x})>".format(
                             type(axes).__name__, id(axes)))
                 titles.append(name)
-            item, ok = QtGui.QtWidgets.QInputDialog.getItem(
-                self.parent, 'Customize', 'Select axes:', titles, 0, False)
+            item, ok = QtGui.QInputDialog.getItem(
+                None, 'Customize', 'Select axes:', titles, 0, False)
             if ok:
-                axes = allaxes[titles.index(six.text_type(item))]
+                axes = allaxes[titles.index(item)]
             else:
                 return
 
         figureoptions.figure_edit(axes, self)
+        self.update(False)
     
     def on_subplot_clicked(self, bn):
-        self.figure.navigation.configure_subplots(bn)
+        self.figure.navigation.configure_subplots()
 
     def on_editor_changed(self):
         self.update()
-
-    def on_explorer_changed(self, widget):
-        self.update(False)
 
     def on_xy_changed(self):
         preset = self.presets[self.combo_presets.currentIndex()]
@@ -1110,13 +1100,12 @@ class SaveFigure(QtGui.QWidget):
             self.figure_view.resizeEvent(None)
 
 
-class FigureStack(QtGui.QWidget, BaseFigureStack):
+class FigureStack(uiutils.UI, BaseFigureStack):
 
     def __init__(self, title="Figure Stack", fixed_aspect_ratio=False, **kwargs):
         BaseFigureStack.__init__(self, title=title, 
                                  fixed_aspect_ratio=fixed_aspect_ratio, **kwargs)
-        QtGui.QWidget.__init__(self)
-        self.setWindowTitle(title)
+        uiutils.UI.__init__(self, 800, 500, title)
         self.window_title = title
 
         # self.connect('delete-event', self.on_destroy)
@@ -1142,7 +1131,6 @@ class FigureStack(QtGui.QWidget, BaseFigureStack):
         previous.clicked.connect(self.on_previous_pressed)
         previous.setMaximumSize(30, 30)
         self.ctl.addWidget(previous)
-        print previous.sizeHint().height()
 
         next = QtGui.QPushButton(' > ')
         next.clicked.connect(self.on_next_pressed)
@@ -1164,16 +1152,15 @@ class FigureStack(QtGui.QWidget, BaseFigureStack):
 
         self.tooltip_manager = TooltipManager(self)
 
-    # def on_destroy(self, event, window):
-    #     self.tooltip_manager.destroy()
-    #     self.tooltip_manager = None
-    #     self.destroy()
-    #     if self.view_widget is not None:
-    #         self.view_widget = None
-    #     if self.navigation is not None:
-    #         self.navigation.destroy()
-    #         self.navigation = None
-    #     return False
+    def closeEvent(self, event):
+        self.destroy()
+        uiutils.UI.closeEvent(self, event)
+
+    def destroy(self):
+        self.tooltip_manager.release()
+        self.tooltip_manager = None
+        BaseFigureStack.destroy(self)
+        uiutils.UI.deleteLater(self)
 
     # def on_canva_box_size_allocated(self, box, allocation):
     #     size = "%s x %s" % (allocation.width, allocation.height)
@@ -1238,7 +1225,7 @@ class FigureStack(QtGui.QWidget, BaseFigureStack):
 
         self.canva_box.insertWidget(position, self.view)
         self.navi_box.insertWidget(position, figure.navigation)
-        self.combobox.insertItem(position, name)
+        self.combobox.insertItem(position, str(name))
         self.combobox.setCurrentIndex(position)
 
         self.add_intensity_tooltip(figure)
@@ -1271,4 +1258,8 @@ class FigureStack(QtGui.QWidget, BaseFigureStack):
     def show(self, start_main=True):
         self.combobox.setCurrentIndex(0)
         self.on_figure_changed()
-        QtGui.QWidget.show(self)
+
+        if start_main:
+            self.start()
+        else:
+            QtGui.QWidget.show(self)
