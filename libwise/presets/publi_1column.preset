@@ -2,11 +2,11 @@ axes.color_cycle:['#3465a4', '#4e9a06', '#cc0000', '#F57900', '#75507b', '#EDD40
 axes.grid:True
 axes.linewidth:0.8
 figure.figsize:[5.4, 3.5]
-font.family:['serif']
+font.family:serif
 font.size:10.0
 grid.color:grey
 grid.linewidth:0.4
-image.interpolation:none
+image.interpolation:nearest
 image.origin:lower
 legend.borderpad:0.4
 legend.fontsize:small

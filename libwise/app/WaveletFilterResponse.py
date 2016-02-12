@@ -23,7 +23,7 @@ class WaveletFilterResponse(uiutils.Experience):
 
         self.dx = uiutils.SpinRangeParameter(ctl, self, "dx", -10, 10, 1, 0)
 
-        # self.add_spinner(ctl)
+        self.add_spinner(ctl)
 
         self.gui.show()
         self.do_update()

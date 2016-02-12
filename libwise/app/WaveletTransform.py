@@ -29,7 +29,7 @@ class WaveletTransform(uiutils.Experience):
         self.dec = uiutils.ListParameter(self.ctl, self, "Transform:", decs)
         self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts)
 
-        # self.add_spinner(self.ctl)
+        self.add_spinner(self.ctl)
 
         self.x = x
         self.t = t

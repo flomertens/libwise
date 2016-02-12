@@ -311,7 +311,7 @@ def test_m87():
 
 
 if __name__ == '__main__':
-    # test_figure_stack()
+    test_figure_stack()
     # test_save_plot()
     # test_lmc()
     # test_m87()
@@ -322,7 +322,7 @@ if __name__ == '__main__':
 
     # for i in range(10):
     # import gc
-    test_lmc()
+    # test_lmc()
 
     # from meliae import scanner
     # scanner.dump_all_objects(os.path.expanduser('~/memory.json'))

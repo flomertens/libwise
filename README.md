@@ -23,6 +23,7 @@ You need to install the following packages:
 - astropy (>= 0.4)
 - matplotlib (>= 1.0)
 - pyqt (>= 4.8)
+- pandas
 - pyregion (https://pypi.python.org/pypi/pyregion)
 - uncertainties (https://pypi.python.org/pypi/uncertainties)
 - pymorph (https://pypi.python.org/pypi/pymorph)

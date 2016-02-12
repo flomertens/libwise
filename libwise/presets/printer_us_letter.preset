@@ -5,7 +5,6 @@ axes.linewidth:1.0
 figure.dpi:200.0
 figure.figsize:[11.0, 8.5]
 font.family:serif
-font.serif:['Droid serif']
 font.size:14.0
 grid.color:grey
 grid.linewidth:0.4

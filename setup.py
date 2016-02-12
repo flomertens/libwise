@@ -4,7 +4,7 @@ Created on Jun 11, 2012
 @author: fmertens
 '''
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 
 
 setup(

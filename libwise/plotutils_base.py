@@ -48,7 +48,7 @@ lblue, lgreen, lred, lorange, lmagenta, lyellow, lblack = color_cycle_light
 color_cycle_dark = ['#204A87', '#4E9A06', '#A40000', '#CE5C00', '#5C3566', '#C4A000', '#2E3436']
 dblue, dgreen, dred, dorange, dmagenta, dyellow, dblack = color_cycle_dark
 
-matplotlib.rcParams["axes.color_cycle"] = color_cycle + color_cycle_light + color_cycle_dark
+presetutils.set_color_cycles(color_cycle + color_cycle_light + color_cycle_dark)
 
 all_markers = {'o': 'circle', 'D': 'diamond', 's': 'square', '*': 'star', 'h': 'hexagon1', 
            '^': 'triangle_up', 'p': 'pentagon', 0: 'tickleft', 1: 'tickright', 2: 'tickup', 3: 'tickdown',

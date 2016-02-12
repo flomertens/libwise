@@ -103,7 +103,7 @@ class WaveletDenoise(uiutils.Experience):
         self.threashold_factor = uiutils.SpinRangeParameter(self.ctl, self, "Threshold:", 0, 6, 1, 4)
         self.mode = uiutils.ListParameter(self.ctl, self, "Mode:", ["hard", "soft"])
 
-        # self.add_spinner(self.ctl)
+        self.add_spinner(self.ctl)
 
         self.ax1, self.ax2, self.ax3 = self.view.figure.subplots(1, 3)
 

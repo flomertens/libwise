@@ -4,10 +4,10 @@ Created on Mar 12, 2012
 @author: fmertens
 '''
 
-import pyfits
 import numpy as np
 import matplotlib.pyplot as plt
 
+import astropy.io.fits as pyfits
 from libwise import nputils, uiutils, imgutils, plotutils, wtutils, wavelets
 
 import waveletsui
@@ -33,7 +33,7 @@ class WaveletTransform2D(uiutils.Experience):
         self.dec = uiutils.ListParameter(self.ctl, self, "Transform:", decs)
         self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts, "symm")
 
-        # self.add_spinner(self.ctl)
+        self.add_spinner(self.ctl)
 
         self.ax1, self.ax2 = self.view.figure.subplots(1, 2)
 

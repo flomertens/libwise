@@ -11,6 +11,7 @@ import collections
 import numpy as np
 
 from PyQt4 import QtGui, QtCore
+import waitingspinnerwidget
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
@@ -298,25 +299,6 @@ class OpenImage(Button):
             self.set(img)
 
 
-class PlotView(FigureCanvas):
-
-    def __init__(self, figure=None):
-        if figure is None:
-            figure = Figure(dpi=90, frameon=True)
-        self.figure = figure
-        FigureCanvas.__init__(self, figure)
-        FigureCanvas.setSizePolicy(self,
-                                   QtGui.QSizePolicy.Expanding,
-                                   QtGui.QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-
-
-class NavigationToolbar(NavigationToolbar2QT):
-
-    def __init__(self, plot_view):
-        super(NavigationToolbar, self).__init__(plot_view, None)
-
-
 class EntryDescription(QtGui.QLineEdit):
 
     def __init__(self, description, text=None, n_chars=None):
@@ -385,7 +367,8 @@ class EntryDescription(QtGui.QLineEdit):
         self.editingFinished.emit()
 
 
-class CustomNode(object):  
+class CustomNode(object):
+
     def __init__(self, in_data):
         self._data = in_data  
   
@@ -510,11 +493,14 @@ class CustomModel(QtCore.QAbstractItemModel):
 
 class UI(QtGui.QWidget):
 
-    def __init__(self, xsize, ysize, title, parent=None, destroy_with_parent=True):
+    closeRequested = QtCore.pyqtSignal() 
+
+    def __init__(self, xsize, ysize, title, parent=None, window_flags=QtCore.Qt.Window):
         if QtGui.QApplication.startingUp():
             self._app = QtGui.QApplication(sys.argv)
 
         QtGui.QWidget.__init__(self, parent=parent)
+        self.setWindowFlags(window_flags)
 
         # self.connect("destroy", self.__on_destroy)
         self.size_hint = QtCore.QSize(xsize, ysize)
@@ -543,6 +529,10 @@ class UI(QtGui.QWidget):
     #     gtk.main_quit()
     #     return True
 
+    def closeEvent(self, event):
+        self.closeRequested.emit()
+        QtGui.QWidget.closeEvent(self, event)
+
     def sizeHint(self):
         return self.size_hint
 
@@ -561,10 +551,14 @@ class Experience(object):
         self.thread = None
         self.mutex = QtCore.QMutex()
 
-    # def add_spinner(self, box):
-    #     self.spinner = gtk.Spinner()
-    #     box.add(self.spinner)
-    #     gobject.idle_add(self.spinner.hide)
+    def add_spinner(self, box):
+        self.label = QtGui.QLabel("    ")
+        self.spinner = waitingspinnerwidget.QtWaitingSpinner(self.label)
+        self.spinner.setLineLength(4)
+        self.spinner.setInnerRadius(3)
+        self.spinner.setNumberOfLines(10)
+        self.spinner.hide()
+        box.add(self.label)
 
     def do_update(self, parameter_changed=None):
         if not self.mutex.tryLock():

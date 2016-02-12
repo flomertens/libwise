@@ -177,6 +177,7 @@ class AbstractTwoPointsRequest(object):
                 self.canvas.restore_region(self.background)
                 self.canvas.update()
             except:
+                print "Issue clearing"
                 pass
 
     def __draw_line(self):
@@ -195,18 +196,26 @@ class ProfileLine(AbstractTwoPointsRequest):
         self.pos_background = None
         self.path_position = None
         self.line = None
+        self.profile_window = None
+        self.parent = parent
 
-        self.profile_window = ProfileWindow(parent)
-        self.profile_window.closeRequested.connect(self.clear)
+    def on_window_close(self):
+        self.clear()
+        self.profile_window = None
 
     def check_axes(self, axes):
         return axes_has_artist(axes, AxesImage)
 
     def release(self):
         AbstractTwoPointsRequest.release(self)
-        self.profile_window.close()
+        if self.profile_window is not None:
+            self.profile_window.close()
 
     def action(self):
+        if self.profile_window is None:
+            self.profile_window = ProfileWindow(self.parent)
+            self.profile_window.closeRequested.connect(self.on_window_close)
+
         ax1 = self.profile_window.get_axes()
         ax2 = ax1.twiny()
 
@@ -303,10 +312,15 @@ class PlotImageStats(AbstractTwoPointsRequest):
 
     def __init__(self, parent, canvas):
         AbstractTwoPointsRequest.__init__(self, canvas)
-        self.stats_window = StatsWindow(parent, canvas)
+        self.parent = parent
+        self.stats_window = None
 
         self.rect1 = None
         self.rect2 = None
+
+    def on_window_close(self):
+        self.clear()
+        self.profile_window = None
 
     def check_axes(self, axes):
         return axes_has_artist(axes, Line2D) or axes_has_artist(axes, AxesImage)
@@ -325,9 +339,14 @@ class PlotImageStats(AbstractTwoPointsRequest):
 
     def release(self):
         AbstractTwoPointsRequest.release(self)
-        self.stats_window.close()
+        if self.stats_window is not None:
+            self.stats_window.close()
 
     def action(self):
+        if self.stats_window is None:
+            self.stats_window = StatsWindow(self.parent, self.canvas)
+            self.stats_window.closeRequested.connect(self.on_window_close)
+
         self.stats_window.init()
 
         for artist in self.axes.get_children():
@@ -387,15 +406,12 @@ class PlotImageStats(AbstractTwoPointsRequest):
 class StatsWindow(uiutils.UI):
 
     def __init__(self, parent, canvas):
-        uiutils.UI.__init__(self, 600, 500, "Statistics")
-
+        uiutils.UI.__init__(self, 500, 300, "Statistics", parent=parent, window_flags=QtCore.Qt.Dialog)
         self.setLayout(QtGui.QVBoxLayout())
         self.canvas = canvas
 
         self.notebook = QtGui.QTabWidget()
-        # self.notebook.set_scrollable(True)
         self.layout().addWidget(self.notebook)
-        # self.connect("delete-event", self.on_delete)
 
     # def on_delete(self, widget, event):
     #     self.hide()
@@ -465,7 +481,7 @@ class StatsWindow(uiutils.UI):
 class BaseFigureWindow(uiutils.UI):
 
     def __init__(self, figure=None, name="", parent=None, extended_toolbar=True):
-        uiutils.UI.__init__(self, 800, 500, name)
+        uiutils.UI.__init__(self, 800, 500, name, parent=parent, window_flags=QtCore.Qt.Window)
         self.setLayout(QtGui.QVBoxLayout())
 
         self.tooltip_manager = TooltipManager(self)
@@ -514,14 +530,8 @@ class ExtFigureWindow(BaseFigureWindow):
 
 class ProfileWindow(BaseFigureWindow):
 
-    closeRequested = QtCore.pyqtSignal() 
-
     def __init__(self, parent=None):
         BaseFigureWindow.__init__(self, None, "Profile", parent, extended_toolbar=False)
-
-    def closeEvent(self, event):
-        self.closeRequested.emit()
-        BaseFigureWindow.closeEvent(self, event)
 
     def get_figure(self):
         return self.figure
@@ -642,7 +652,7 @@ class ExtendedNavigationToolbar(NavigationToolbar):
         self._actions['profile'].setCheckable(True)
         self._actions['stats'].setCheckable(True)
 
-    def hideEvent(self, event):
+    def closeEvent(self, event):
         self.toogle_off_all_active()
 
     def _icon(self, name):
@@ -672,7 +682,7 @@ class ExtendedNavigationToolbar(NavigationToolbar):
         else:
             self.toogle_off_all_active()
             self._active = 'PROFILE'
-            self.profile_line = ProfileLine(None, self.canvas)
+            self.profile_line = ProfileLine(self.parent, self.canvas)
         self._update_buttons_checked()
 
     def stats(self):
@@ -682,7 +692,7 @@ class ExtendedNavigationToolbar(NavigationToolbar):
         else:
             self.toogle_off_all_active()
             self._active = 'STATS'
-            self.image_stats = PlotImageStats(None, self.canvas)
+            self.image_stats = PlotImageStats(self.parent, self.canvas)
         self._update_buttons_checked()
 
     def toogle_off_all_active(self):
@@ -691,7 +701,7 @@ class ExtendedNavigationToolbar(NavigationToolbar):
 
     def save_figure(self, *args):
         self.canvas.figure.navigation = self
-        self.sf = SaveFigure(self.canvas.figure, parent=None)
+        self.sf = SaveFigure(self.canvas.figure, parent=self.parent)
 
 
 class BaseCustomCanvas(FigureCanvas):
@@ -768,6 +778,7 @@ class PresetSetting(uiutils.CustomNode):
             value = unicode(value.toPyObject())
         try:
             self.preset.set(self.group, self.setting, value)
+            value = self.preset.get(self.group, self.setting, display=True)
             uiutils.CustomNode.setData(self, column, value)
             return True
         except Exception, e:
@@ -799,7 +810,7 @@ class PresetTreeModel(uiutils.CustomModel):
         nodes = []
         for group in self.preset.get_groups():
             node = PresetGroup(group)
-            for setting, value in self.preset.get_settings(group):
+            for setting, value in self.preset.get_settings(group, display=True):
                 node.addChild(PresetSetting(self.preset, group, setting, str(value)))
             nodes.append(node)
         return nodes
@@ -857,8 +868,9 @@ class PresetEditor(uiutils.UI):
 
     changed = QtCore.pyqtSignal() 
 
-    def __init__(self, preset):
-        uiutils.UI.__init__(self, 400, 350, "Preset Editor: %s" % preset.get_name())
+    def __init__(self, preset, parent):
+        uiutils.UI.__init__(self, 400, 350, "Preset Editor: %s" % preset.get_name(), 
+                            parent=parent, window_flags=QtCore.Qt.Dialog)
 
         self.preset = preset
         self.source_model = PresetTreeModel(preset)
@@ -918,9 +930,9 @@ class PresetEditor(uiutils.UI):
         return False
 
     def on_save_clicked(self, bn):
-        dial = uiutils.EntryDialog("Preset name", self.preset.get_name(), parent=self)
-        name = dial.run()
-        if name is not None and len(name) > 0:
+        name, ok = QtGui.QInputDialog.getText(self, "Preset name", 
+            "Enter the preset name:", text=self.preset.get_name())
+        if ok and len(name) > 0:
             self.preset.set_name(name)
             self.preset.save()
             self.save_bn.setEnabled(False)
@@ -950,7 +962,7 @@ class PresetEditor(uiutils.UI):
 class SaveFigure(uiutils.UI):
 
     def __init__(self, figure, auto_dpi=True, parent=None):
-        uiutils.UI.__init__(self, 800, 500, "Save plot")
+        uiutils.UI.__init__(self, 800, 500, "Save plot", parent=parent, window_flags=QtCore.Qt.Window)
         self.figure = figure
 
         vbox = QtGui.QVBoxLayout()
@@ -999,15 +1011,10 @@ class SaveFigure(uiutils.UI):
         bn_save.clicked.connect(self.on_save_clicked)
         ctl.addWidget(bn_save)
 
-        # if not isinstance(figure, ReplayableFigure):
-        #     bn_edit.setEnabled(False)
-
-        # self.connect("delete-event", self.on_leave)
-
         self.show()
         self.update(True)
 
-    def on_leave(self, w, event):
+    def closeEvent(self, event):
         self.figure.canvas = self.current_canvas
         display_preset = presetutils.RcPreset.load("display")
         display_preset.apply(self.figure)
@@ -1018,10 +1025,7 @@ class SaveFigure(uiutils.UI):
         self.figure.subplots_adjust(**self.current_subplotpars)
         self.figure.set_dpi(self.curent_dpi)
 
-        if self.current_canvas is not None:
-            self.figure.canvas.queue_resize()
-        self.hide()
-        return True
+        uiutils.UI.closeEvent(self, event)
 
     def on_preset_changed(self, combo):
         self.update(True)
@@ -1035,12 +1039,12 @@ class SaveFigure(uiutils.UI):
 
     def on_edit_clicked(self, bn):
         preset = self.presets[self.combo_presets.currentIndex()]
-        self.editor = PresetEditor(preset)
+        self.editor = PresetEditor(preset, self)
         self.editor.changed.connect(self.on_editor_changed)
         self.editor.show()
 
     def on_explore_clicked(self, bn):
-        # From matplotlib/backends/backend_qt5.py
+        # Adapted from matplotlib/backends/backend_qt5.py
         allaxes = self.figure.get_axes()
         if not allaxes:
             QtGui.QMessageBox.warning(
@@ -1105,7 +1109,7 @@ class FigureStack(uiutils.UI, BaseFigureStack):
     def __init__(self, title="Figure Stack", fixed_aspect_ratio=False, **kwargs):
         BaseFigureStack.__init__(self, title=title, 
                                  fixed_aspect_ratio=fixed_aspect_ratio, **kwargs)
-        uiutils.UI.__init__(self, 800, 500, title)
+        uiutils.UI.__init__(self, 800, 500, title, window_flags=QtCore.Qt.Window)
         self.window_title = title
 
         # self.connect('delete-event', self.on_destroy)
@@ -1263,3 +1267,7 @@ class FigureStack(uiutils.UI, BaseFigureStack):
             self.start()
         else:
             QtGui.QWidget.show(self)
+
+if __name__ == '__main__':
+    editor = PresetEditor(presetutils.RcPreset.load('display_v2'), None)
+    editor.start()
