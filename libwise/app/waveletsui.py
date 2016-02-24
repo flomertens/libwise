@@ -17,14 +17,14 @@ class WaveletSelector(uiutils.WidgetParameter):
         self.orders = []
         self.order = None
 
-        label_wavelet = QtGui.QLabel("Wavelet family:")
+        label_wavelet = QtGui.QLabel("Wavelet:")
         self.addWidget(label_wavelet, 0)
 
         self.combo_wlet_fam = QtGui.QComboBox()
         self.addWidget(self.combo_wlet_fam, 0)
 
-        label_wavelet = QtGui.QLabel("Order:")
-        self.addWidget(label_wavelet, 0)
+        # label_wavelet = QtGui.QLabel("")
+        # self.addWidget(label_wavelet, 0)
 
         self.combo_wlet_order = QtGui.QComboBox()
         self.addWidget(self.combo_wlet_order, 0)

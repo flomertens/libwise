@@ -1,0 +1,65 @@
+#! /usr/bin/env python
+
+import os
+
+import libwise
+from libwise import imgutils
+import libwise.scriptshelper as sh
+
+import numpy as np
+import astropy.units as u
+
+USAGE = '''Crop and rotate FITS files
+Usage: %s RA-1,DEC-1,RA-2,DEC-2 FILES
+
+Crop the image to the frame defined by the lower-left and upper-right
+coordinates 1, and 2. Coordinates are relative to the reference pixel.
+
+Additional options:
+--unit=UNIT, -u UNIT: coordinates units, default is deg
+--rotate=ANGLE, -r ANGLE: rotate the FITS of the specified amount in degree, default is 0
+--output-dir=DIR, -o DIR: directory of the processed files, default is current directory
+--suffix=SUFFIX, -p SUFFIX: suffixed attached to the name of the processed files, default is '.cropped'
+''' % __file__
+
+sh.init(libwise.get_version(), USAGE)
+unit = sh.get_opt_value('unit', 'u', default=u.deg)
+rotate_angle = sh.get_opt_value('rotate', 'r', default=0)
+sh.check(rotate_angle, float, "Rotation angle should be a float")
+output_dir = sh.get_opt_value('output-dir', 'o', default=os.getcwd())
+suffix = sh.get_opt_value('suffix', 's', default='.cropped')
+
+try:
+    unit = u.Unit(unit)
+    assert unit.is_equivalent(u.deg) or unit.is_equivalent(u.pix)
+except:
+    print "Error: unit need to be an angular unit or pixel unit"
+    sh.usage(True)
+
+rotate_angle = np.radians(float(rotate_angle))
+args = sh.get_args(min_nargs=2)
+
+try:
+    x1, y1, x2, y2 = [float(k) for k in args[0].split(',')]
+except:
+    print "Error: Crop coordinates needs to be defined by four numbers separated by comas.\n"
+    sh.usage(True)
+
+for file in args[1:]:
+    print "Processing: ", file
+    img = imgutils.guess_and_open(file)
+    prj = None
+    if unit.is_equivalent(u.deg):
+        prj = img.get_projection(relative=True, unit=unit)
+
+    if rotate_angle is not 0:
+        img.rotate(rotate_angle)
+
+    img.crop([x1, y1], [x2, y2], projection=prj)
+
+    file_no_ext, ext = file.rsplit('.', 1)
+    output_file = os.path.join(output_dir, os.path.basename(file_no_ext) + suffix + '.' + ext)
+
+    img.save(output_file)
+
+    print "-> Saved to %s" % output_file

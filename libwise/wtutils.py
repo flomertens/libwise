@@ -246,6 +246,11 @@ def get_noise_factor_from_background(wavelet, level, dec, background):
     return [scale.std() for scale in scales[:-1]]
 
 
+def get_noise_factor_from_data(wavelet, level, dec, data):
+    scales = wavedec(data, wavelet, level, dec=dec)
+    return [nputils.k_sigma_noise_estimation(scale) for scale in scales[:-1]]
+
+
 def get_noise_factor(wavelet, level, dec, beam=None):
     # n = (250000)
     n = (200, 200)

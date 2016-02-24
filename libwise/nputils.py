@@ -1022,7 +1022,7 @@ def k_sigma_noise_estimation(data, k=3, iteration=3, beam=None):
     noise = gaussian_noise([int(10000 ** (1 / float(data.ndim)))] * data.ndim, 0, 1)
     if beam is not None:
         noise = beam.convolve(noise)
-        detail = lambda a: a - smooth(a, max(beam.widthx, beam.widthy) * 3, mode='same')
+        detail = lambda a: a - smooth(a, max(beam.bmin, beam.bmaj) * 3, mode='same')
     else:
         detail = lambda a: a - smooth(a, 3, mode='same')
     sigma_filtered = detail(noise).std()
@@ -1894,6 +1894,27 @@ def is_number(x):
     return isinstance(x, (int, long, float, complex))
 
 
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
+
+
+def str2floatlist(s):
+    s = s.strip('([)]')
+    return [float(k.strip()) for k in s.split(',')]
+
+
+def str2jsonclass(v):
+    if "py/type" not in v:
+        return '{"py/type": "%s"}' % v
+    return v
+
+
+def str2jsonfunction(v):
+    if "py/function" not in v:
+        return '{"py/function": "%s"}' % v
+    return v
+
+
 def make_callable(obj):
     if not is_callable(obj):
         return lambda *args: obj
@@ -2186,31 +2207,45 @@ class ConfigurationsContainer(object):
         for config in self._configs:
             section =  config.get_title()
             parser.add_section(section)
-            for option, value in config.items():
+            for option, value in config.items(max_level=1, encode=True):
                 parser.set(section, option, value)
 
         with open(filename, 'wb') as fh:
             parser.write(fh)
 
-    def doc(self):
-        return "\n".join([k.doc() for k in self._configs])
+    def from_file(self, filename):
+        parser = ConfigParser.RawConfigParser()
+        parser.read(filename)
+        configs = dict([(config.get_title(), config) for config in self._configs])
+        for section in parser.sections():
+            config = configs[section]
+            for option, value in parser.items(section):
+                config.set(option, value, decode=True)
 
-    def values(self):
-        return "\n".join([k.values() for k in self._configs])
+    def doc(self, max_level=0):
+        return "\n".join([k.doc(max_level=max_level) for k in self._configs])
+
+    def values(self, max_level=0):
+        return "\n".join([k.values(max_level=max_level) for k in self._configs])
 
 
 
 class BaseConfiguration(ConfigurationsContainer):
 
     def __init__(self, settings, title):
+        # settings order: key, default, doc, validator, decoder, encoder, level
         # class attributes need to start with "_" so that we can set 
         # option using simple attribute assignment (ex: config.option = value)
+        # levels: 0: show in doc(), 1: save/load to/from file, 2: not saved
         self._title = title
-        self._keys, defaults, docs, validators = zip(*settings)
+        self._keys, defaults, docs, validators, decoders, encoders, level = zip(*settings)
         self._defaults = collections.OrderedDict(zip(self._keys, defaults))
         self._values = collections.OrderedDict(zip(self._keys, defaults))
         self._docs = collections.OrderedDict(zip(self._keys, docs))
         self._validators = collections.OrderedDict(zip(self._keys, validators))
+        self._decoders = collections.OrderedDict(zip(self._keys, decoders))
+        self._encoders = collections.OrderedDict(zip(self._keys, encoders))
+        self._level = collections.OrderedDict(zip(self._keys, level))
         ConfigurationsContainer.__init__(self, [self])
 
     def __getattr__(self, name):
@@ -2231,20 +2266,38 @@ class BaseConfiguration(ConfigurationsContainer):
     def __str__(self):
         return self.values()
 
-    def get(self, option):
+    def get(self, option, encode=False):
         assert option in self._keys
-        return self._values.get(option)
+        value = self._values.get(option)
+        if encode and value is not None:
+            return self._encoders.get(option, str)(value)
+        return value
 
-    def set(self, option, value, validate=True):
+    def has(self, option):
+        return option in self._keys
+
+    def iter_options(self, max_level=2):
+        for key in self._keys:
+            if self._level.get(key) <= max_level:
+                yield key
+
+    def set(self, option, value, validate=True, decode=False):
         assert option in self._keys
+        decoders = self._decoders.get(option)
         validator = self._validators.get(option)
+        if decode:
+            if value == 'None':
+                value = None
+            elif decoders is not None:
+                value = decoders(value)
         if value is not None and validate and validator is not None:
             if not validator(value):
                 print "Warning: validation failed while setting %s to %s" % (option, value)
         self._values[option] = value
 
-    def items(self):
-        return self._values.items()
+    def items(self, max_level=2, encode=False):
+        for key in self.iter_options(max_level=max_level):
+            yield (key, self.get(key, encode=encode))
 
     def get_default(self, option):
         assert option in self._keys
@@ -2262,9 +2315,9 @@ class BaseConfiguration(ConfigurationsContainer):
         assert option in self._keys
         return self._docs.get(option)
 
-    def doc(self):
+    def doc(self, max_level=0):
         array = []
-        for key in self._keys:
+        for key in self.iter_options(max_level=max_level):
             doc = self.get_doc(key)
             default = self.get_default(key)
             array.append([key, doc, default])
@@ -2273,9 +2326,9 @@ class BaseConfiguration(ConfigurationsContainer):
 
         return "Documentation for:%s\n%s" % (self._title, table)
 
-    def values(self):
+    def values(self, max_level=0):
         array = []
-        for key in self._keys:
+        for key in self.iter_options(max_level=max_level):
             value = self.get(key)
             array.append([key, value])
 
@@ -2285,10 +2338,6 @@ class BaseConfiguration(ConfigurationsContainer):
 
     def get_title(self):
         return self._title
-
-    def to_file(self, filename):
-        array = self._values.items()
-        np.savetxt(filename, array, ["%s", "%s"])
 
 
 def validator_in_range(vmin, vmax, instance=(float, int, long)):
@@ -2317,11 +2366,13 @@ def validator_is_class(klass):
     return validator
 
 
-def validator_list(length, instance):
+def validator_list(length, instance=None):
 
     def validator(l):
-        if isinstance(l, (list, np.ndarray)) and len(l) == length:
-            return True
+        if not isinstance(l, (list, np.ndarray)):
+            return False
+        if len(l) != length:
+            return False
         for value in l:
             if not isinstance(value, instance):
                 return False

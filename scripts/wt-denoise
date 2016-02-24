@@ -1,0 +1,14 @@
+#! /usr/bin/env python
+
+import libwise
+from libwise import imgutils
+from libwise.app import WaveletDenoise
+import libwise.scriptshelper as sh
+
+sh.init(libwise.get_version(), "Usage: %s [FILE]" % __file__)
+args = sh.get_args(min_nargs=1)
+
+file = imgutils.guess_and_open(args[0])
+
+w = WaveletDenoise.WaveletDenoise(file)
+w.gui.start()

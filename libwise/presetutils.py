@@ -136,12 +136,9 @@ class RcPreset(object):
         return None
 
     def set_key(self, key, value):
-        print key, value
         key, value = self.compat(key, value)
-        print "->", value
         if key in self.rc_params:
             self.rc_params[key] = value
-            print '-->', self.rc_params[key]
             self.preset_params.add(key)
 
     def set(self, group, setting, value):

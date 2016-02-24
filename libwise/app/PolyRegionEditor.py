@@ -71,24 +71,6 @@ class PolyRegionEditor(uiutils.UI):
 
         plotutils.imshow_image(self.ax, self.img, projection=self.prj, title=False)
 
-    def get_axes(self):
-        return self.ax
-
-    def load_poly_region(self, poly_region):
-        self.title_entry.set_text(poly_region.title)
-        self.color_entry.set_text(poly_region.color)
-        self.poly.set_fc(poly_region.color)
-        vertices = list(poly_region.vertices)
-        vertices.append(vertices[0])
-        self.poly.xy = vertices
-        self._update_line()
-        self.canvas.draw()
-
-    def load_default(self):
-        default_poly_region = imgutils.PolyRegion.default_from_ax(self.ax)
-        self.load_poly_region(default_poly_region)
-
-    def start(self):
         self.poly = Polygon([[0, 0]], animated=True,
                     fc='b', ec='none', alpha=0.4)
 
@@ -117,7 +99,23 @@ class PolyRegionEditor(uiutils.UI):
         self.load_default()
 
         self.canvas.setFocus()
-        uiutils.UI.start(self)
+
+    def get_axes(self):
+        return self.ax
+
+    def load_poly_region(self, poly_region):
+        self.title_entry.set_text(poly_region.title)
+        self.color_entry.set_text(poly_region.color)
+        self.poly.set_fc(poly_region.color)
+        vertices = list(poly_region.vertices)
+        vertices.append(vertices[0])
+        self.poly.xy = vertices
+        self._update_line()
+        self.canvas.draw()
+
+    def load_default(self):
+        default_poly_region = imgutils.PolyRegion.default_from_ax(self.ax)
+        self.load_poly_region(default_poly_region)
 
     def on_load_clicked(self, bn):
         filename = uiutils.open_file(parent=self, current_folder=self.current_folder)

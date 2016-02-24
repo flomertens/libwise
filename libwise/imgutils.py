@@ -25,7 +25,6 @@ from scipy.ndimage.interpolation import rotate, zoom
 import astropy.units as u
 import astropy.wcs as pywcs
 import astropy.io.fits as pyfits
-from astropy.coordinates import ICRS
 import astropy.cosmology as cosmology
 from astropy.time import TimeDelta
 
@@ -263,7 +262,7 @@ def fast_sorted_fits(files, key="DATE-OBS", start_date=None, end_date=None, filt
             if not filter(date):
                 continue
             file_date.append((file, date))
-        else:
+        elif is_img(file):
             file_date.append((file, file))
     file_date = sorted(file_date, key=lambda k: k[1])
     files = zip(*file_date)[0]
@@ -278,6 +277,10 @@ def is_fits(file):
         return f.read(6) == 'SIMPLE'
 
 
+def is_img(file):
+    return imghdr.what(file) is not None
+
+
 def guess_and_open(file, fits_extension=0, check_stack_img=False):
     if isinstance(file, Image):
         return file
@@ -287,7 +290,7 @@ def guess_and_open(file, fits_extension=0, check_stack_img=False):
             if hdr.has_key(StackedImage.KEY_N):
                 return StackedImage.from_file(file, extension=fits_extension)
         return FitsImage(file, extension=fits_extension)
-    if imghdr.what(file) is not None:
+    if is_img(file):
         return PilImage(file)
     raise Exception("No handler to open: %s" % file)
 
@@ -1614,6 +1617,14 @@ class Region(object):
     def __str__(self):
         return "Region(%s)" % os.path.basename(self.get_filename())
 
+    def __getstate__(self):
+        return {'filename': self.filename}
+
+    def __setstate__(self, state):
+        self.filename = state['filename']
+        self.region = pyregion.open(self.filename)
+        self.pyregion_cache = nputils.LimitedSizeDict(size_limit=50)
+
     def get_filename(self):
         return self.filename
 
@@ -1691,7 +1702,7 @@ class ImageRegion(Image):
         return self.shift
 
     def check_shift(self, shift):
-        for (x0, x1), sx, dx in zip(zip_index(self.index), self.shape, self.get_shift()):
+        for (x0, x1), sx, dx in zip(zip_index(self.index), self.shape, shift):
             if x1 + dx <= 0 or x0 + dx >= sx:
                 return False
         return True

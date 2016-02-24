@@ -18,16 +18,28 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 
 import imgutils
 
+_QT_APP = None
+
 
 def select_file(parent=None, current_folder=""):
+    global _QT_APP
+    if QtGui.QApplication.startingUp():
+        _QT_APP = QtGui.QApplication(sys.argv)
+
     res = QtGui.QFileDialog.getSaveFileName(parent=parent, directory=current_folder)
+
     if res == "":
         return None
     return str(res)
 
 
 def open_file(parent=None, current_folder=""):
+    global _QT_APP
+    if QtGui.QApplication.startingUp():
+        _QT_APP = QtGui.QApplication(sys.argv)
+
     res = QtGui.QFileDialog.getOpenFileName(parent=parent, directory=current_folder)
+
     if res == "":
         return None
     return str(res)
@@ -208,6 +220,9 @@ class RangeParameter(NamedWidgetParameter):
     def get_max(self):
         return self.range_widget.maximum()
 
+    def get_min(self):
+        return self.range_widget.minimum()
+        
     def set_min(self, mini):
         self.range_widget.setMinimum(mini)
         if self.range_widget.value() < mini:
@@ -282,6 +297,7 @@ class OpenImage(Button):
             if not isinstance(img, imgutils.Image):
                 img = imgutils.Image(img)
             self.set(img, update=False)
+        self.current_path = None
 
     def set(self, value, update=True):
         Button.set(self, value, update=update)
@@ -292,10 +308,14 @@ class OpenImage(Button):
         self.bn.setText(label)
 
     def on_clicked(self, bn):
-        path = open_file()
+        current_folder = ''
+        if self.current_path is not None:
+            current_folder = os.path.dirname(self.current_path)
 
-        if path is not None:
-            img = imgutils.guess_and_open(path)
+        self.current_path = open_file(current_folder=current_folder)
+
+        if self.current_path is not None:
+            img = imgutils.guess_and_open(self.current_path)
             self.set(img)
 
 
@@ -549,6 +569,7 @@ class Experience(object):
 
     def __init__(self):
         self.thread = None
+        self.spinner = None
         self.mutex = QtCore.QMutex()
 
     def add_spinner(self, box):
@@ -568,13 +589,11 @@ class Experience(object):
         print "Start do update"
         self.stopping()
         res = self.before_update(parameter_changed)
-        # traceback.print_stack()
-
-        if hasattr(self, 'spinner'):
-            self.spinner.start()
-            self.spinner.show()
 
         if res is not False:
+            if self.spinner is not None:
+                self.spinner.start()
+                self.spinner.show()
             self.thread = LongRunning(self.update, (parameter_changed), dict(),
                                  self.__after_update)
             self.thread.start()
@@ -588,10 +607,11 @@ class Experience(object):
         pass
 
     def __after_update(self, result):
-        if hasattr(self, 'spinner'):
+        if self.spinner is not None:
             self.spinner.stop()
             self.spinner.hide()
-        self.after_update(result)
+        if not (isinstance(result, bool) and result is False):
+            self.after_update(result)
 
     def after_update(self, result):
         pass
@@ -620,8 +640,7 @@ class LongRunning(QtCore.QThread):
 
     def run(self):
         result = self.fct(self.args, self)
-        if self.is_alive() and self.cbk and (not isinstance(result, bool) or result is not False):
-            # gobject.idle_add(self.cbk, result)
+        if self.is_alive() and self.cbk:
             self.cbk(result)
 
 

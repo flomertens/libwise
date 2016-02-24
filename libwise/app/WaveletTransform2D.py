@@ -33,6 +33,8 @@ class WaveletTransform2D(uiutils.Experience):
         self.dec = uiutils.ListParameter(self.ctl, self, "Transform:", decs)
         self.ext = uiutils.ListParameter(self.ctl, self, "Boundary:", exts, "symm")
 
+        uiutils.Button(self.ctl, self, "Save result", self.on_save)
+
         self.add_spinner(self.ctl)
 
         self.ax1, self.ax2 = self.view.figure.subplots(1, 2)
@@ -42,6 +44,18 @@ class WaveletTransform2D(uiutils.Experience):
         self.gui.show()
         self.do_update()
 
+    def on_save(self):
+        if self.current_wavedec is None:
+            return
+        file = uiutils.select_file()
+        if file is not None:
+            new_hdul = pyfits.HDUList()
+            for scale, img in zip(range(self.scale.get_min(), self.scale.get_max() + 1), self.current_wavedec):
+                hdu = img.build_hdu()
+                hdu.header.set('EXTNAME', "Scale %s" % scale)
+                new_hdul.append(hdu)
+            new_hdul.writeto(file)
+
     def before_update(self, changed):
         if not isinstance(self.wavelet.get(), str) and isinstance(self.img.get(), imgutils.Image):
             maxs = min(8, self.wavelet.get().get_max_level(self.img.get().data) + 2)
@@ -49,6 +63,8 @@ class WaveletTransform2D(uiutils.Experience):
 
     def update(self, changed, thread):
         if changed is not self.scale:
+            if self.img.get() is None:
+                return False
             scale_max = self.scale.get_max()
             data = self.img.get().data
             res = wtutils.wavedec(data, self.wavelet.get(), scale_max,
@@ -99,8 +115,8 @@ def main():
 
     # img = get_img([250, 250], [250, 250])
 
-    # FILE = "/homes/fmertens/data/crab/H1-WI.FITS"
-    # img = pyfits.open(FILE)[0].data
+    # file = "/home/flo/data/lmc/lmc_bothun_R_ast.fits"
+    # img = imgutils.FitsImage(file)
 
     # img = img[480:600, 480:600]
 
@@ -111,7 +127,7 @@ def main():
     # estimated_noise_sigma = nputils.k_sigma_noise_estimation(img)
     # denoised = denoiser.do(img, noise_sigma=estimated_noise_sigma, threashold_factor=3)
 
-    w = WaveletTransform2D(imgutils.Image(img))
+    w = WaveletTransform2D(img)
     w.gui.start()
 
 if __name__ == '__main__':

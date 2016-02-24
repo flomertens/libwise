@@ -1161,8 +1161,9 @@ class FigureStack(uiutils.UI, BaseFigureStack):
         uiutils.UI.closeEvent(self, event)
 
     def destroy(self):
-        self.tooltip_manager.release()
-        self.tooltip_manager = None
+        if self.tooltip_manager is not None:
+            self.tooltip_manager.release()
+            self.tooltip_manager = None
         BaseFigureStack.destroy(self)
         uiutils.UI.deleteLater(self)
 

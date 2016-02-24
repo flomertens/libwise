@@ -283,8 +283,8 @@ def test_lmc():
 
     def do_plot_lmc(ax):
         imshow_image(ax, lmc, projection=prj)
-        update_grid_helper(ax, tick_formatter1=angle_helper.FormatterHMS(), tick_formatter2=angle_helper.FormatterDMS(),
-                               grid_locator1=angle_helper.LocatorHMS(4), grid_locator2=angle_helper.LocatorDMS(4))
+        # update_grid_helper(ax, tick_formatter1=angle_helper.FormatterHMS(), tick_formatter2=angle_helper.FormatterDMS(),
+                               # grid_locator1=angle_helper.LocatorHMS(4), grid_locator2=angle_helper.LocatorDMS(4))
 
     do_plot_lmc(ax)
 
@@ -311,9 +311,9 @@ def test_m87():
 
 
 if __name__ == '__main__':
-    test_figure_stack()
+    # test_figure_stack()
     # test_save_plot()
-    # test_lmc()
+    test_lmc()
     # test_m87()
     # test_markers()
     # test_colors()
