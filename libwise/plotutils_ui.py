@@ -656,7 +656,7 @@ class ExtendedNavigationToolbar(NavigationToolbar):
         self.toogle_off_all_active()
 
     def _icon(self, name):
-        if name.startswith("/"):
+        if name.startswith(os.path.sep):
             return QtGui.QIcon(name)
         return NavigationToolbar._icon(self, name)
 

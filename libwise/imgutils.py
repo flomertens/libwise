@@ -30,11 +30,6 @@ from astropy.time import TimeDelta
 
 import matplotlib.ticker as mticker
 
-from mpl_toolkits.axisartist.grid_helper_curvelinear import GridHelperCurveLinear
-import mpl_toolkits.axisartist.angle_helper as angle_helper
-
-import pyregion
-
 RESSOURCE_PATH = os.path.join(os.path.dirname(__file__), 'ressource')
 
 import nputils
@@ -710,6 +705,8 @@ class Projection(object):
         return (d.decompose() / self.__get_delta_time(time)).T
 
     def get_gh(self, locator=None, formatter=None):
+        from mpl_toolkits.axisartist.grid_helper_curvelinear import GridHelperCurveLinear
+
         if formatter is None:
             # useMathText is a memory killer (https://github.com/matplotlib/matplotlib/issues/3177)
             formatter = FormatterPrettyPrint(useMathText=False)
@@ -1568,6 +1565,8 @@ class PolyRegion(object):
 
     @staticmethod
     def from_file(filename, coordinate_system):
+        import pyregion
+
         region = pyregion.open(filename)
         assert len(region) == 1
         shape = region[0]
@@ -1610,6 +1609,8 @@ class Region(object):
     ''' Wrapper for pyregion ShapeList, so that we can deal directly with CoordinateSystsem'''
 
     def __init__(self, filename):
+        import pyregion
+
         self.filename = filename
         self.region = pyregion.open(filename)
         self.pyregion_cache = nputils.LimitedSizeDict(size_limit=50)

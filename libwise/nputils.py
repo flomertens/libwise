@@ -23,7 +23,6 @@ import numpy as np
 from scipy import optimize
 from scipy import interpolate
 from scipy.ndimage.interpolation import map_coordinates
-from scipy.signal import convolve2d as scipy_convolve2d
 from scipy.ndimage.filters import convolve1d as scipy_convolve1d
 from scipy.optimize import leastsq, curve_fit
 from scipy.ndimage.morphology import grey_dilation
@@ -31,7 +30,6 @@ from scipy.ndimage.measurements import center_of_mass
 from uncertainties import ufloat, umath, unumpy
 from uncertainties import UFloat
 
-from astropy.time import Time
 
 # inline import:
 # heavy and rarely used: from scipy import signal
@@ -383,6 +381,8 @@ def epoch_to_datetime(epoch):
 
 
 def datetime_to_mjd(datetime):
+    from astropy.time import Time
+
     return Time(datetime, scale='utc').mjd
 
 
@@ -1372,6 +1372,8 @@ def fill_extension(a, nright, nleft, fillvalue=0, axis=None):
 
 
 def _convolve_1d_full(a, v, boundary='symm', mode='full'):
+    from scipy.signal import convolve2d as scipy_convolve2d
+
     res = scipy_convolve2d([a], [v], mode=mode, boundary=CONV_BOUNDARY_MAP[boundary])
     return res[0]
 
@@ -1428,6 +1430,8 @@ def convolve(a, v, boundary='symm', axis=None, mode='full', using_fft=True, usin
             if using_fft:
                 result = fftconvolve(a, v, mode=mode)
             else:
+                from scipy.signal import convolve2d as scipy_convolve2d
+
                 result = scipy_convolve2d(a, v, mode=mode, boundary=CONV_BOUNDARY_MAP[boundary])
         else:
             raise ValueError("Wrong dimension for v")

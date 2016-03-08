@@ -24,6 +24,11 @@ c_normal = "\x1b[0m"
 
 ENABLE_COLOR = True
 
+
+if sys.platform == "win32":
+    ENABLE_COLOR = False
+
+
 def usage(exit=False) :
     print _SH_USAGE
     if exit :

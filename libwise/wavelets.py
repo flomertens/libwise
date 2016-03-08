@@ -8,7 +8,6 @@ import re
 
 import numpy as np
 import wavelets_coefficients as wc
-from scipy.signal import cascade
 
 from libwise import nputils
 
