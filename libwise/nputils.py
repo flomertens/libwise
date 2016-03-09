@@ -2354,6 +2354,16 @@ def validator_in_range(vmin, vmax, instance=(float, int, long)):
     return validator
 
 
+def validator_in(list_allowed):
+
+    def validator(value):
+        if value in list_allowed:
+            return True
+        return False
+
+    return validator
+
+
 def validator_is(instance):
 
     def validator(value):
