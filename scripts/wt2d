@@ -6,7 +6,7 @@ from libwise.app import WaveletTransform2D
 import libwise.scriptshelper as sh
 
 sh.init(libwise.get_version(), "Usage: %s [FILE]" % __file__)
-args = sh.get_args(min_nargs=2)
+args = sh.get_args(min_nargs=1)
 
 file = imgutils.guess_and_open(args[0])
 

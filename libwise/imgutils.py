@@ -1263,7 +1263,7 @@ class FitsImage(Image):
                 return [bmaj, bmin, bpa]
         return None
 
-    def rotate(self, angle_rad, spline_order=5, smooth_len=3):
+    def rotate(self, angle_rad, spline_order=0, smooth_len=3):
         rmatrix = Image.rotate(self, angle_rad, spline_order, smooth_len)
 
         new_pc = np.dot(self.wcs.wcs.get_pc(), rmatrix)

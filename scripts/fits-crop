@@ -52,7 +52,7 @@ for file in args[1:]:
     if unit.is_equivalent(u.deg):
         prj = img.get_projection(relative=True, unit=unit)
 
-    if rotate_angle is not 0:
+    if rotate_angle != 0:
         img.rotate(rotate_angle)
 
     img.crop([x1, y1], [x2, y2], projection=prj)
