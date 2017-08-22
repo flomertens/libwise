@@ -5,16 +5,26 @@ Created on Mar 9, 2012
 '''
 import os
 import sys
-import threading
 import collections
 
 import numpy as np
 
-from PyQt4 import QtGui, QtCore
+
+try:
+    __import__('PyQt5')
+    use_pyqt5 = True
+except ImportError:
+    use_pyqt5 = False
+
+if use_pyqt5:
+    from PyQt5 import QtGui, QtCore, QtWidgets
+    for obj_str in dir(QtWidgets):
+        if not obj_str.startswith('_'):
+            setattr(QtGui, obj_str, getattr(QtWidgets, obj_str))
+else:
+    from PyQt4 import QtGui, QtCore
+
 import waitingspinnerwidget
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT
 
 import imgutils
 

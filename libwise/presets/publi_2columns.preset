@@ -1,6 +1,6 @@
 axes.color_cycle:['#3465a4', '#4e9a06', '#cc0000', '#F57900', '#75507b', '#EDD400', '#555753']
 axes.grid:True
-axes.linewidth:0.8
+axes.linewidth:0.4
 figure.figsize:[3.5433, 2.5]
 font.family:serif
 font.size:8.0
@@ -13,8 +13,8 @@ legend.fontsize:small
 legend.handlelength:3.5
 legend.handletextpad:0.5
 legend.labelspacing:0.3
-lines.linewidth:0.8
+lines.linewidth:0.4
 lines.markersize:3.0
 name:latex_aa
-patch.linewidth:0.8
+patch.linewidth:0.4
 text.usetex:True

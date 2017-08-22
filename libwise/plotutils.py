@@ -311,9 +311,9 @@ def test_m87():
 
 
 if __name__ == '__main__':
-    # test_figure_stack()
+    test_figure_stack()
     # test_save_plot()
-    test_lmc()
+    # test_lmc()
     # test_m87()
     # test_markers()
     # test_colors()

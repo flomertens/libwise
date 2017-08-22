@@ -50,17 +50,17 @@ dblue, dgreen, dred, dorange, dmagenta, dyellow, dblack = color_cycle_dark
 
 presetutils.set_color_cycles(color_cycle + color_cycle_light + color_cycle_dark)
 
-all_markers = {'o': 'circle', 'D': 'diamond', 's': 'square', '*': 'star', 'h': 'hexagon1', 
-           '^': 'triangle_up', 'p': 'pentagon', 0: 'tickleft', 1: 'tickright', 2: 'tickup', 3: 'tickdown',
-           4: 'caretleft', 6: 'caretup', 7: 'caretdown',
-           '|': 'vline', '': 'nothing', 'None': 'nothing',
-           'x': 'x', 5: 'caretright', '_': 'hline',
-           None: 'nothing', 'd': 'thin_diamond', ' ': 'nothing',
-           '+': 'plus', ',': 'pixel',
-           '.': 'point', '1': 'tri_down',
-           '3': 'tri_left', '2': 'tri_up', '4': 'tri_right',
-           'H': 'hexagon2', 'v': 'triangle_down', '8': 'octagon',
-           '<': 'triangle_left', '>': 'triangle_right'}
+all_markers = {'o': 'circle', 'D': 'diamond', 's': 'square', '*': 'star', 'h': 'hexagon1',
+               '^': 'triangle_up', 'p': 'pentagon', 0: 'tickleft', 1: 'tickright', 2: 'tickup', 3: 'tickdown',
+               4: 'caretleft', 6: 'caretup', 7: 'caretdown',
+               '|': 'vline', '': 'nothing', 'None': 'nothing',
+               'x': 'x', 5: 'caretright', '_': 'hline',
+               None: 'nothing', 'd': 'thin_diamond', ' ': 'nothing',
+               '+': 'plus', ',': 'pixel',
+               '.': 'point', '1': 'tri_down',
+               '3': 'tri_left', '2': 'tri_up', '4': 'tri_right',
+               'H': 'hexagon2', 'v': 'triangle_down', '8': 'octagon',
+               '<': 'triangle_left', '>': 'triangle_right'}
 
 best_map_markers = ['o', 'D', 's', '*', 'h', '^', 'p']
 
@@ -111,6 +111,37 @@ def twin_xaxis(ax, fct, fmt="%.3f"):
     return ax2
 
 
+def autoscale_y(ax, margin=0.1):
+    """This function rescales the y-axis based on the data that is visible given the current xlim of the axis.
+    ax -- a matplotlib axes object
+    margin -- the fraction of the total height of the y-data to pad the upper and lower ylims
+
+    From: http://stackoverflow.com/questions/29461608/matplotlib-fixing-x-axis-scale-and-autoscale-y-axis
+    """
+
+    def get_bottom_top(line):
+        xd = line.get_xdata()
+        yd = line.get_ydata()
+        lo, hi = ax.get_xlim()
+        y_displayed = yd[((xd > lo) & (xd < hi))]
+        h = np.max(y_displayed) - np.min(y_displayed)
+        bot = np.min(y_displayed) - margin * h
+        top = np.max(y_displayed) + margin * h
+        return bot, top
+
+    lines = ax.get_lines()
+    bot, top = np.inf, -np.inf
+
+    for line in lines:
+        new_bot, new_top = get_bottom_top(line)
+        if new_bot < bot:
+            bot = new_bot
+        if new_top > top:
+            top = new_top
+
+    ax.set_ylim(bot, top)
+
+
 def get_cmap(map, bad_color=white, bad_alpha=1):
     ''' bad color: color used for mask values'''
     if isinstance(map, cm.colors.Colormap):
@@ -125,6 +156,7 @@ def set_grid_helper(axes, grid_helper):
         axes._grid_helper = grid_helper
         if grid_helper is not None:
             axes.cla()
+
 
 def update_grid_helper(axes, **kw):
     axes._grid_helper.grid_finder.update(**kw)
@@ -239,7 +271,7 @@ def imshow_images(stack, images, projection=None, beam=True, title=True, **kargs
 
 
 def plot_size_bar(ax, value, value_str, loc=4, pad=0.1, borderpad=0.5, sep=5, frameon=False):
-    asb =  AnchoredSizeBar(ax.transData, value, value_str,
+    asb = AnchoredSizeBar(ax.transData, value, value_str,
                           loc=loc, pad=pad, borderpad=borderpad, sep=sep, frameon=frameon)
     ax.add_artist(asb)
 
@@ -273,7 +305,6 @@ def plot_error_span(ax, x, y1, y2, c='y', **kwargs):
     ax.fill_between(x, y1, y2, color=c, alpha=0.25)
 
 
-
 class AbsFormatter(object):
     def __init__(self, useMathText=True):
         self._fmt = ScalarFormatter(useMathText=useMathText, useOffset=False)
@@ -286,7 +317,7 @@ class AbsFormatter(object):
 
 def add_rotated_axis(ax, projection, theta, axis_pos=(1, 3), locator=None, formatter=None):
     """Add an Additional rotated axis
-    
+
     Parameters
     ----------
     ax : :class:`matplotlib.axes.Axes`
@@ -298,11 +329,11 @@ def add_rotated_axis(ax, projection, theta, axis_pos=(1, 3), locator=None, forma
     locator : a grid helper locator, optional
     formatter : a grid helper formatter, optional
     """
-    axis = projection.new_rotated_floating_axis([0, 0], theta, axis_pos[0], 
-        axis_pos[1], ax)
+    axis = projection.new_rotated_floating_axis([0, 0], theta, axis_pos[0],
+                                                axis_pos[1], ax)
     axis.set_ticklabel_direction("+")
     axis.major_ticklabels.set_axis_direction("bottom")
-    
+
     axis.set_axis_direction("bottom")
     axis.set_axislabel_direction("+")
 
@@ -415,7 +446,7 @@ class EpochNormalize(Normalize):
 
 class ColorbarInnerPosition(object):
 
-    def __init__(self, orientation="horizontal", width="5%", height="50%", location=1, pad=0.5, 
+    def __init__(self, orientation="horizontal", width="5%", height="50%", location=1, pad=0.5,
                  tick_position=None):
         '''
         width, height: inch if number, percentage of parent axes if string (like '5%')
@@ -480,8 +511,8 @@ class ColorbarOutterPosition(object):
     def get_cb_axes(self, ax):
         divider = make_axes_locatable(ax)
         cax = divider.append_axes(self.location, self.width, pad=self.pad)
-        cax.axis[:].toggle(ticklabels=False)
-        cax.axis[self.location].toggle(ticklabels=True)
+#        cax.axis[:].toggle(ticklabels=False)
+#        cax.axis[self.location].toggle(ticklabels=True)
         return cax
 
     def get_orientation(self):
@@ -506,7 +537,7 @@ class ColorbarSetting(object):
     def add_colorbar(self, mappable, ax):
         fig = ax.get_figure()
         cb = fig.colorbar(mappable, ticks=self.ticks_locator, format=self.ticks_formatter,
-                            orientation=self.cb_position.get_orientation(), cax=self.cb_position.get_cb_axes(ax))
+                          orientation=self.cb_position.get_orientation(), cax=self.cb_position.get_cb_axes(ax))
         self.cb_position.post_creation(cb)
         if not hasattr(fig, '_plotutils_colorbars'):
             fig._plotutils_colorbars = dict()
@@ -716,7 +747,7 @@ class BaseFigureStack(object):
     def add_subplots(self, name="", nrows=1, ncols=1, n=None, sharex=False, sharey=False,
                      sharex_hspace=0.15, sharey_wspace=0.15, axisartist=True, reshape=True):
         fig = self.add_figure(name)
-        return fig, fig.subplots(nrows, ncols, n, sharex, sharey, sharex_hspace, sharey_wspace, 
+        return fig, fig.subplots(nrows, ncols, n, sharex, sharey, sharex_hspace, sharey_wspace,
                                  axisartist=axisartist, reshape=reshape)
 
     def add_tooltip(self, axes, coord, text, tol=5):

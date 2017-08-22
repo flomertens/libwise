@@ -488,7 +488,8 @@ def _corr_convolve_fast(x, y, mode='same', method='auto'):
             index.append(slice(None, None))
 
     return corr[index]
-    
+
+
 def xcorr_fast(x, y, mode='same', method='auto'):
     return _corr_convolve_fast(x, flip(y), mode=mode, method=method)
 
@@ -1142,7 +1143,7 @@ def distance_from_border(point, shape):
 
 def save_object(object, filename, dir=DATA_DIR):
     ''' DEPRECATED '''
-    if not os.path.exists(DATA_DIR):
+    if not os.path.exists(dir):
         os.makedirs(dir)
 
     path = os.path.abspath(os.path.join(dir, filename + '.data'))
@@ -1899,7 +1900,7 @@ def is_number(x):
 
 
 def str2bool(v):
-  return v.lower() in ("yes", "true", "t", "1")
+    return v.lower() in ("yes", "true", "t", "1")
 
 
 def str2floatlist(s):
@@ -2001,10 +2002,10 @@ def lorentzian_1d(a, height, center, gamma):
     return lambda x: a + height * gamma ** 2 / ((x - center) ** 2 + gamma ** 2)
 
 
-def fitgaussian(data, params):
+def fitgaussian(data, params, base_null=True):
     ''' params: (a, height, center, sigma)
         center and sigma can be array or number
-        
+
         Return fitted params, cov'''
     if params is None:
         return None
@@ -2025,6 +2026,9 @@ def fitgaussian(data, params):
     def unflat_params(params):
         if not center_is_array:
             return params
+        if base_null:
+            params[0] = 0
+        print params
         return [params[0], params[1], params[2:2 + data.ndim], params[2 + data.ndim: 2 + 2 * data.ndim]]
 
     def fct(p):
@@ -2447,6 +2451,10 @@ def uarray_s(array):
     if isinstance(array[0], UFloat):
         return np.array([k.s for k in array])
     return np.zeros_like(array)
+
+
+def uarray_dec(u_array):
+    return uarray_n(u_array), uarray_s(u_array)
 
 
 class AbstractFct(object):
@@ -2944,8 +2952,8 @@ def test_upsample():
     xcorr = norm_xcorr2(i1, i2)
     # xcorr = xcorr[:-1, :-1]
 
-    print np.array(xcorr.shape) / 2. - coord_max(xcorr)
-    print np.array(res.shape), coord_max(res), np.array(res.shape) / 2. - coord_max(res), (np.array(res.shape) / 2. - coord_max(res)) / float(n)
+    # print np.array(xcorr.shape) / 2. - coord_max(xcorr)
+    # print np.array(res.shape), coord_max(res), np.array(res.shape) / 2. - coord_max(res), (np.array(res.shape) / 2. - coord_max(res)) / float(n)
 
     stack = plotutils.FigureStack()
     fig, (ax1, ax2, ax3, ax4) = stack.add_subplots("Test", n=4, reshape=False)

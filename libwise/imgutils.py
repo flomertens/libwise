@@ -724,6 +724,8 @@ class Projection(object):
                                      tick_formatter2=formatter)
 
     def new_rotated_floating_axis(self, point, teta, nth_coord, value, axes, axis_direction="top"):
+        from mpl_toolkits.axisartist.grid_helper_curvelinear import GridHelperCurveLinear
+        
         rot_trans = RotationTransform(teta, point)
         transform = CompositeTransform(rot_trans, self.transform)
         rmatrix = np.array([[np.cos(teta), np.sin(teta)], [-np.sin(teta), np.cos(teta)]])
