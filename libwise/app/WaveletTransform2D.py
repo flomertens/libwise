@@ -4,11 +4,8 @@ Created on Mar 12, 2012
 @author: fmertens
 '''
 
-import numpy as np
-import matplotlib.pyplot as plt
-
 import astropy.io.fits as pyfits
-from libwise import nputils, uiutils, imgutils, plotutils, wtutils, wavelets
+from libwise import uiutils, imgutils, plotutils, wtutils, wavelets
 
 import waveletsui
 

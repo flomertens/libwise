@@ -5,7 +5,6 @@ Created on May 23, 2012
 '''
 import itertools
 import waveletsui
-import numpy as np
 import matplotlib.pyplot as plt
 
 from libwise import imgutils, plotutils, nputils, wtutils, wavelets, uiutils
@@ -28,22 +27,22 @@ class Denoise(object):
     def decompose(self, img):
         if self.dec == wtutils.uiwt:
             dec = wtutils.wavedec(img, self.wavelet, self.level,
-                             self.boundary, self.dec, thread=self.thread)
+                                  self.boundary, self.dec, thread=self.thread)
             if dec is None:
                 return None
             return [[k] for k in dec]
         else:
             return wtutils.wavedec2d(img, self.wavelet, self.level,
-                                self.boundary, self.dec, thread=self.thread)
+                                     self.boundary, self.dec, thread=self.thread)
 
     def recompose(self, coeffs, img):
         if self.dec == wtutils.uiwt:
             coeffs = [k[0] for k in coeffs]
             return wtutils.waverec(coeffs, self.wavelet, self.boundary,
-                              self.rec, img.shape, thread=self.thread)
+                                   self.rec, img.shape, thread=self.thread)
         else:
             return wtutils.waverec2d(coeffs, self.wavelet, self.boundary,
-                                self.rec, img.shape, thread=self.thread)
+                                     self.rec, img.shape, thread=self.thread)
 
     def get_noise_factor(self, frame, noise_sigma, noise):
         if not self._noise_res:
@@ -67,7 +66,7 @@ class Denoise(object):
 
         for (i, frame) in enumerate(itertools.chain(*res[:-1])):
             noise_factor = self.get_noise_factor(i, noise_sigma, noise)
-            if noise_factor == None:
+            if noise_factor is None:
                 return None
             threashold = threashold_factor * noise_factor
             mask = (abs(frame) < threashold)
@@ -86,7 +85,7 @@ class WaveletDenoise(uiutils.Experience):
         self.gui = uiutils.UI(900, 600, "Wavelet Denoiser 2D")
 
         uiutils.Experience.__init__(self)
-        wavelet_families=wavelets.get_all_wavelet_families()
+        wavelet_families = wavelets.get_all_wavelet_families()
         self.boundary = "symm"
 
         bv = self.gui.add_box(uiutils.VBox())
@@ -138,7 +137,7 @@ class WaveletDenoise(uiutils.Experience):
         denoised = denoise.do(self.noisy, estimated_noise_sigma, threashold_factor=self.threashold_factor.get())
         # denoised = nputils.smooth(self.noisy, 9, mode="same", boundary="symm")
 
-        if not thread.is_alive() or denoised == None:
+        if not thread.is_alive() or denoised is None:
             return False
 
         return (img, imgutils.Image.from_image(img, self.noisy), imgutils.Image.from_image(img, denoised))
@@ -164,7 +163,7 @@ class WaveletDenoise(uiutils.Experience):
 
 def main():
     plt.gray()
-    exp = WaveletDenoise(imgutils.Image(imgutils.lena()[::-1]))
+    exp = WaveletDenoise(imgutils.Image(imgutils.galaxy()[::-1]))
     exp.gui.start()
 
 

@@ -1,5 +1,5 @@
 '''
-Description: Set of class and function that help handle images data from 
+Description: Set of class and function that help handle images data from
 different source (jpeg, png, fits, ...)
 
 Created on Feb 22, 2012
@@ -211,7 +211,7 @@ def galaxy():
 
 
 def lena():
-    return misc.lena()
+    return misc.face()
 
 
 # def function(inp, x1, x2, fct, value):
@@ -245,7 +245,7 @@ def get_fits_epoch_fast(file):
     return date
 
 
-def fast_sorted_fits(files, key="DATE-OBS", start_date=None, end_date=None, filter_dates=None, 
+def fast_sorted_fits(files, key="DATE-OBS", start_date=None, end_date=None, filter_dates=None,
                      filter=None, step=1):
     ''' Need to have the utility gethead install and in the path '''
     file_date = []
@@ -282,7 +282,7 @@ def guess_and_open(file, fits_extension=0, check_stack_img=False):
     if is_fits(file):
         if check_stack_img:
             hdr = FastHeaderReader(file)
-            if hdr.has_key(StackedImage.KEY_N):
+            if StackedImage.KEY_N in hdr:
                 return StackedImage.from_file(file, extension=fits_extension)
         return FitsImage(file, extension=fits_extension)
     if is_img(file):
@@ -296,11 +296,11 @@ class AbstractBeam(object):
         self._beam = None
 
     def convolve(self, img, boundary="zero"):
-        if self._beam == None:
+        if self._beam is None:
             self._beam = self.build_beam()
         if isinstance(self._beam, tuple):
-            c = nputils.convolve(img, self._beam[0], mode='same', boundary=boundary, axis=0) 
-            return nputils.convolve(c, self._beam[1], mode='same', boundary=boundary, axis=1) 
+            c = nputils.convolve(img, self._beam[0], mode='same', boundary=boundary, axis=0)
+            return nputils.convolve(c, self._beam[1], mode='same', boundary=boundary, axis=1)
         return nputils.convolve(img, self._beam, mode='same', boundary=boundary)
 
     def build_beam(self):
@@ -322,7 +322,7 @@ class IdleBeam(AbstractBeam):
         return img
 
     def build_beam():
-        return np.array([[1,],])
+        return np.array([[1, ], ])
 
 
 class GaussianBeam(AbstractBeam):
@@ -349,7 +349,7 @@ class GaussianBeam(AbstractBeam):
             beam = gaussian(support, width=width, angle=self.bpa)
             beam = beam / beam.sum()
         elif self.bmaj != self.bmin:
-            beam = (signalutils.gaussian(support_x, width=self.bmaj), 
+            beam = (signalutils.gaussian(support_x, width=self.bmaj),
                     signalutils.gaussian(support_y, width=self.bmin))
             beam = (beam[0] / beam[0].sum(), beam[1] / beam[1].sum())
         else:
@@ -470,7 +470,7 @@ class ScaleTransform(Transform):
 class ProjectionSettings(object):
 
     def __init__(self, unit=u.deg, relative=False, center='pix_ref', distance=None, z=0, cosmo=None):
-        ''' 
+        '''
         center: a pixel coordinate defining the center or one of 'center', 'pix_ref'
         distance: angular diameter distance or 'proper' distance
 
@@ -547,8 +547,8 @@ class WorldCoordinateSystem(AbstractCoordinateSystem):
     def __init__(self, wcs, shape=None):
         self.wcs = copy.deepcopy(wcs)
         self.shape = shape
-        self._key = (tuple(self.wcs.wcs.crpix), tuple(self.wcs.wcs.crval), 
-                     tuple(self.wcs.wcs.get_cdelt().flatten()), 
+        self._key = (tuple(self.wcs.wcs.crpix), tuple(self.wcs.wcs.crval),
+                     tuple(self.wcs.wcs.get_cdelt().flatten()),
                      tuple(self.wcs.wcs.get_pc().flatten()), self.shape)
 
     def __eq__(x, y):
@@ -568,10 +568,10 @@ class WorldCoordinateSystem(AbstractCoordinateSystem):
                 center = np.array(self.shape)[::-1] / 2
             else:
                 center = settings.center
-            projection = RelativeWCSProjection(self, center, settings.unit, 
+            projection = RelativeWCSProjection(self, center, settings.unit,
                                                distance=settings.distance, z=settings.z)
         else:
-            projection = WCSProjection(self, unit=settings.unit, 
+            projection = WCSProjection(self, unit=settings.unit,
                                        distance=settings.distance, z=settings.z)
         return projection
 
@@ -592,10 +592,11 @@ class WorldCoordinateSystem(AbstractCoordinateSystem):
 
 
 class FormatterPrettyPrint(object):
-    ''' Will go away when matplotlib #4761 is fixed (affect v1.2 to 1.4). 
+    ''' Will go away when matplotlib #4761 is fixed (affect v1.2 to 1.4).
         This introduce an other less visible bug.
         In case it affects you, please use a proper Formatter like FormatterDMS
     '''
+
     def __init__(self, useMathText=True):
         self._fmt = mticker.ScalarFormatter(useMathText=useMathText, useOffset=False)
         self._fmt.create_dummy_axis()
@@ -605,7 +606,7 @@ class FormatterPrettyPrint(object):
         if not self._ignore_factor:
             if factor is None:
                 factor = 1.
-            values = [v/factor for v in values]
+            values = [v / factor for v in values]
         # Avoid duplicate values
         if len(list(set(values))) != len(values):
             print direction, values
@@ -677,7 +678,7 @@ class Projection(object):
         if isinstance(time, TimeDelta):
             time = time.to(u.second)
         return time.decompose()
-        
+
     def angular_velocity(self, xy_pixel1, xy_pixel2, time):
         d = self.angular_separation(xy_pixel1, xy_pixel2)
         return d.decompose() / self.__get_delta_time(time)
@@ -725,10 +726,10 @@ class Projection(object):
 
     def new_rotated_floating_axis(self, point, teta, nth_coord, value, axes, axis_direction="top"):
         from mpl_toolkits.axisartist.grid_helper_curvelinear import GridHelperCurveLinear
-        
+
         rot_trans = RotationTransform(teta, point)
         transform = CompositeTransform(rot_trans, self.transform)
-        rmatrix = np.array([[np.cos(teta), np.sin(teta)], [-np.sin(teta), np.cos(teta)]])
+        # rmatrix = np.array([[np.cos(teta), np.sin(teta)], [-np.sin(teta), np.cos(teta)]])
 
         def transform_xy(x, y):
             return transform.s2p(np.array(np.atleast_1d(x, y)).T).T
@@ -767,7 +768,7 @@ class WCSProjection(Projection):
 
     def __init__(self, coordinate_system, distance=None, unit=u.deg, z=0):
         ''' It make a copy of wcs in case image is transformed afterwards. Projection is valid at the time
-            it is created. If you make transform to your image, this projection is invalid for the 
+            it is created. If you make transform to your image, this projection is invalid for the
             transformed image. '''
         self.wcs = coordinate_system.wcs
         self.unit = unit
@@ -831,7 +832,7 @@ class WCSProjection(Projection):
     def proper_distance(self, xy_pixel1, xy_pixel2):
         if self.distance is None:
             return self.angular_separation(xy_pixel1, xy_pixel2)
-            
+
         p1 = self.absolute(xy_pixel1)
         p2 = self.absolute(xy_pixel2)
         return p1.separation_3d(p2)
@@ -890,7 +891,7 @@ class RelativePixelProjection(AbstractRelativeProjection, Projection):
 
 
 class ImageSet(object):
-    ''' Object used to store beam information 
+    ''' Object used to store beam information
         until we can save full detection result'''
 
     def __init__(self):
@@ -1047,7 +1048,7 @@ class Image(object):
 
     def get_epoch(self, str_format=None):
         if str_format and isinstance(self.epoch, datetime.time):
-            return epoch.strftime('%Y-%m-%d')
+            return self.epoch.strftime('%Y-%m-%d')
         return self.epoch
 
     def get_region(self, center, shape, projection=None):
@@ -1059,8 +1060,9 @@ class Image(object):
         return ImageRegion(img, index)
 
     def resize(self, shape, padding_mode="center"):
-        self.data, padding_index, array_index = nputils.resize(self.data, shape, 
-                    padding_mode=padding_mode, output_index=True)
+        self.data, padding_index, array_index = nputils.resize(self.data, shape,
+                                                               padding_mode=padding_mode, output_index=True)
+
         def i(n):
             if n is None:
                 return 0
@@ -1101,7 +1103,7 @@ class Image(object):
         self.data = rotate(self.data, - angle_rad / (2 * np.pi) * 360, reshape=False, order=spline_order)
 
         if smooth_len > 0:
-            self.data = nputils.smooth(self.data, smooth_len, mode='same' )
+            self.data = nputils.smooth(self.data, smooth_len, mode='same')
 
         rmatrix = np.array([[np.cos(angle_rad), np.sin(angle_rad)], [-np.sin(angle_rad), np.cos(angle_rad)]])
         center = p2i(np.array(self.data.shape) / 2.)
@@ -1213,7 +1215,7 @@ class FitsImage(Image):
 
         self.beam_data = None
         if 'BMAJ' in self.header:
-            self.beam_data = [self.header['BMAJ'], self.header['BMIN'],self.header['BPA']]
+            self.beam_data = [self.header['BMAJ'], self.header['BMIN'], self.header['BPA']]
         elif 'HISTORY' in self.header:
             self.beam_data = self.check_aips_clean_beam()
 
@@ -1249,7 +1251,7 @@ class FitsImage(Image):
         bmaj, bmin, bpa = self.beam_data
         scale = self.get_projection().mean_pixel_scale()
         if bmaj < scale:
-            #Warning: Pixel increment seams wrong (milli degree ? we will assume so)"
+            # Warning: Pixel increment seams wrong (milli degree ? we will assume so)"
             scale = scale * 1 / 1000.
         return GaussianBeam(bmaj / scale, bmin / scale, np.radians(bpa))
 
@@ -1600,7 +1602,7 @@ class PolyRegion(object):
         content = ["# Region file format: DS9 version 4.1\n",
                    "global text={%s} color=%s\n" % (self.title, self.color),
                    "%s\n" % coord_format,
-                   "polygon(%s)\n" % ", ".join(["%s" %k for k in points.flatten()])]
+                   "polygon(%s)\n" % ", ".join(["%s" % k for k in points.flatten()])]
 
         if filename is not None:
             with open(filename, "w") as fd:
@@ -1624,6 +1626,8 @@ class Region(object):
         return {'filename': self.filename}
 
     def __setstate__(self, state):
+        import pyregion
+
         self.filename = state['filename']
         self.region = pyregion.open(self.filename)
         self.pyregion_cache = nputils.LimitedSizeDict(size_limit=50)
@@ -1632,7 +1636,7 @@ class Region(object):
         return self.filename
 
     def get_pyregion(self, coordinate_system=None):
-        if not coordinate_system in self.pyregion_cache:
+        if coordinate_system not in self.pyregion_cache:
             if isinstance(coordinate_system, WCSProjection) or isinstance(coordinate_system, WorldCoordinateSystem):
                 region = self.region.as_imagecoord(coordinate_system.get_header()[1])
             else:
@@ -1757,7 +1761,7 @@ class ImageRegion(Image):
         img = np.zeros(self.shape)
         try:
             img[self.get_slice()] += self.get_region()
-        except:
+        except Exception:
             print self.index, self.get_index(), self.get_shift(), self.shape
             print self.get_region().shape
             raise
@@ -1843,7 +1847,7 @@ def test_poly_editor():
     img = FitsImage(fits)
 
     create_poly_region(img)
-    
+
 
 def test_beam():
     import plotutils
@@ -1882,12 +1886,10 @@ def test_save_fits():
 
 
 def test_image_region():
-    from libwise import  plotutils
-    lena = imgutils.lena()[::-1]
+    from libwise import plotutils
 
-    img = ImageRegion(lena, [110, 120, 260, 280])
+    img = ImageRegion(lena()[::-1], [110, 120, 260, 280])
     img.set_shift([25, 25])
-
 
     stack = plotutils.FigureStack()
 
@@ -1895,6 +1897,7 @@ def test_image_region():
     ax.imshow(img.get_region())
 
     stack.show()
+
 
 def test_image_region_correlate():
     from libwise import plotutils
@@ -1942,5 +1945,3 @@ if __name__ == '__main__':
     # test_save_fits()
     # test_image_region()
     test_image_region_correlate()
-
-

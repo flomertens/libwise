@@ -22,7 +22,7 @@ class Wavelet2DBrowser(uiutils.Experience):
 
         self.wavelet = waveletsui.WaveletSelector(ctl, self, wavelet_families)
         self.gui.show()
-        
+
         self.do_update()
 
     def update(self, changed, thread):

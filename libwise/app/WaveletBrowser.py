@@ -57,8 +57,8 @@ class WaveletBrowser(uiutils.Experience):
 
         tf_f = np.fft.fft(np.sin(fmax * t * 2 * np.pi), 10 * len(t))
 
-        ds = len(t) / (t.max() - t.min())
-        f2 = np.fft.fftfreq(10 * len(t), 1 / ds)
+        # ds = len(t) / (t.max() - t.min())
+        # f2 = np.fft.fftfreq(10 * len(t), 1 / ds)
 
         tf_f = tf_f / tf_f.max()
 

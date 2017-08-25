@@ -11,9 +11,20 @@ import os
 import numpy as np
 
 from libwise import uiutils, imgutils, plotutils
-from PyQt4 import QtGui, QtCore
 
-import pyregion
+try:
+    __import__('PyQt5')
+    use_pyqt5 = True
+except ImportError:
+    use_pyqt5 = False
+
+if use_pyqt5:
+    from PyQt5 import QtGui, QtWidgets
+    for obj_str in dir(QtWidgets):
+        if not obj_str.startswith('_'):
+            setattr(QtGui, obj_str, getattr(QtWidgets, obj_str))
+else:
+    from PyQt4 import QtGui
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
@@ -72,12 +83,12 @@ class PolyRegionEditor(uiutils.UI):
         plotutils.imshow_image(self.ax, self.img, projection=self.prj, title=False)
 
         self.poly = Polygon([[0, 0]], animated=True,
-                    fc='b', ec='none', alpha=0.4)
+                            fc='b', ec='none', alpha=0.4)
 
         self.ax.add_patch(self.poly)
         self.ax.set_clip_on(False)
         self.ax.set_title("Click and drag a point to move it; "
-                     "'i' to insert; 'd' to delete.")
+                          "'i' to insert; 'd' to delete.")
 
         x, y = zip(*self.poly.xy)
         self.line = plt.Line2D(x, y, color='none', marker='o', mfc='r',
@@ -86,7 +97,7 @@ class PolyRegionEditor(uiutils.UI):
         self.ax.add_line(self.line)
 
         self.poly.add_callback(self.poly_changed)
-        self._ind = None # the active vert
+        self._ind = None  # the active vert
 
         canvas = self.poly.figure.canvas
         canvas.mpl_connect('draw_event', self.draw_callback)
@@ -138,7 +149,7 @@ class PolyRegionEditor(uiutils.UI):
             poly_region = imgutils.PolyRegion(vertices, color=color, title=title)
             try:
                 poly_region.to_file(filename, self.img.get_coordinate_system())
-            except:
+            except Exception:
                 msg = "Failed to save region %s" % filename
                 print msg
                 uiutils.error_msg(msg, self)
@@ -153,7 +164,7 @@ class PolyRegionEditor(uiutils.UI):
         'this method is called whenever the polygon object is called'
         # only copy the artist props to the line (except visibility)
         vis = self.line.get_visible()
-        #Artist.update_from(self.line, poly)
+        # Artist.update_from(self.line, poly)
         self.line.set_visible(vis)  # don't use the poly visibility state
 
     def draw_callback(self, event):
@@ -180,33 +191,33 @@ class PolyRegionEditor(uiutils.UI):
         'whenever a key is pressed'
         if not event.inaxes:
             return
-        if event.key=='t':
+        if event.key == 't':
             self.showverts = not self.showverts
             self.line.set_visible(self.showverts)
             if not self.showverts:
                 self._ind = None
-        elif event.key=='d':
+        elif event.key == 'd':
             ind = self.get_ind_under_cursor(event)
             if ind is None:
                 return
             if ind == 0 or ind == self.last_vert_ind:
                 print "Cannot delete root node"
                 return
-            self.poly.xy = [tup for i,tup in enumerate(self.poly.xy)
-                                if i!=ind]
+            self.poly.xy = [tup for i, tup in enumerate(self.poly.xy)
+                            if i != ind]
             self._update_line()
-        elif event.key=='i':
+        elif event.key == 'i':
             xys = self.poly.get_transform().transform(self.poly.xy)
-            p = event.x, event.y # cursor coords
-            for i in range(len(xys)-1):
+            p = event.x, event.y  # cursor coords
+            for i in range(len(xys) - 1):
                 s0 = xys[i]
-                s1 = xys[i+1]
+                s1 = xys[i + 1]
                 d = dist_point_to_segment(p, s0, s1)
                 if d <= self.max_ds:
                     self.poly.xy = np.array(
-                        list(self.poly.xy[:i+1]) +
+                        list(self.poly.xy[:i + 1]) +
                         [(event.xdata, event.ydata)] +
-                        list(self.poly.xy[i+1:]))
+                        list(self.poly.xy[i + 1:]))
                     self._update_line()
                     break
         self.canvas.draw()
@@ -219,13 +230,13 @@ class PolyRegionEditor(uiutils.UI):
                   event.button != 1 or self._ind is None)
         if ignore:
             return
-        x,y = event.xdata, event.ydata
+        x, y = event.xdata, event.ydata
 
         if self._ind == 0 or self._ind == self.last_vert_ind:
-            self.poly.xy[0] = x,y
-            self.poly.xy[self.last_vert_ind] = x,y
+            self.poly.xy[0] = x, y
+            self.poly.xy[self.last_vert_ind] = x, y
         else:
-            self.poly.xy[self._ind] = x,y
+            self.poly.xy[self._ind] = x, y
         self._update_line()
 
         self.canvas.restore_region(self.background)
