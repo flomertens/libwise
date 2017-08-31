@@ -603,6 +603,8 @@ class IntensityFigureTooltip(BaseFigureTooltip):
                 if hasattr(axes, "_grid_helper") and isinstance(axes._grid_helper, GridHelperCurveLinear):
                     (xdata,), (ydata,) = axes._grid_helper.grid_finder.inv_transform_xy((coord[1],), (coord[0],))
                     y0, x0 = np.round(coord)
+                    x0 = int(x0)
+                    y0 = int(y0)
                 else:
                     xe0, xe1, ye0, ye1 = artist.get_extent()
                     tr_x, itr_x = nputils.affine_transform(xe0, xe1, 0, data.shape[1])

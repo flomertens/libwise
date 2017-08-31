@@ -127,11 +127,11 @@ def shift2d(array, delta):
             result_slice.append(slice(None, None))
             array_slice.append(slice(None, None))
         elif delta[dim] > 0:
-            result_slice.append(slice(np.round(delta[dim]), None))
-            array_slice.append(slice(None, -np.round(delta[dim])))
+            result_slice.append(slice(int(np.round(delta[dim])), None))
+            array_slice.append(slice(None, -int(np.round(delta[dim]))))
         else:
-            result_slice.append(slice(None, np.round(delta[dim])))
-            array_slice.append(slice(-np.round(delta[dim]), None))
+            result_slice.append(slice(None, int(np.round(delta[dim]))))
+            array_slice.append(slice(-int(np.round(delta[dim])), None))
 
     result[result_slice] = array[array_slice]
     return result

@@ -38,6 +38,9 @@ def select_file(parent=None, current_folder=""):
 
     res = QtGui.QFileDialog.getSaveFileName(parent=parent, directory=current_folder)
 
+    if use_pyqt5:
+        res = res[0]
+
     if res == "":
         return None
     return str(res)
@@ -49,6 +52,9 @@ def open_file(parent=None, current_folder=""):
         _QT_APP = QtGui.QApplication(sys.argv)
 
     res = QtGui.QFileDialog.getOpenFileName(parent=parent, directory=current_folder)
+
+    if use_pyqt5:
+        res = res[0]
 
     if res == "":
         return None
