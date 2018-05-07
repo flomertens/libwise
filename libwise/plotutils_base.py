@@ -367,7 +367,7 @@ class ColorSelector(object):
     ''' Cycle over all colors '''
 
     def __init__(self):
-        self.colors = list(matplotlib.rcParams["axes.color_cycle"]
+        self.colors = list(matplotlib.rcParams["axes.prop_cycle"].by_key()['color']
                            + color_cycle_dark + color_cycle_light)
         self.ids = dict()
 

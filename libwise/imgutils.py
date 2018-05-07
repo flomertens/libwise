@@ -1151,7 +1151,7 @@ class Image(object):
     def save_to_fits(self, filename):
         hdu = self.build_hdu()
         hdulist = pyfits.HDUList([hdu])
-        hdulist.writeto(filename, clobber=True)
+        hdulist.writeto(filename, overwrite=True)
 
     def save(self, filename):
         self.save_to_fits(filename)
@@ -1730,8 +1730,8 @@ class ImageRegion(Image):
         ia = []
         ib = []
         for (x0, x1), sx, dx in zip(zip_index(self.index), self.shape, self.get_shift()):
-            ia.append(nputils.clamp(x0 + dx, 0, sx))
-            ib.append(nputils.clamp(x1 + dx, 0, sx))
+            ia.append(int(nputils.clamp(x0 + dx, 0, sx)))
+            ib.append(int(nputils.clamp(x1 + dx, 0, sx)))
         return ia + ib
 
     def get_center(self):
