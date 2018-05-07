@@ -972,7 +972,7 @@ def find_peaks(img, width, threashold, exclude_border=True, max_peaks=None, fit_
         peaks[:, -exclude_border_dist:] = np.nan
         peaks[:, :exclude_border_dist] = np.nan
 
-    peaks_coord = np.argwhere(-np.isnan(peaks))
+    peaks_coord = np.argwhere(~np.isnan(peaks))
     peaks_coord = sorted(peaks_coord, key=lambda peak: img[tuple(peak)], reverse=True)
 
     if max_peaks is not None:
@@ -1564,14 +1564,14 @@ def resize(array, shape, padding_mode='center', output_index=False):
     for dim in range(array.ndim):
         diff = (array.shape[dim] - shape[dim])
         if padding_mode == 'right':
-            nleft = abs(diff)
+            nleft = int(abs(diff))
             nright = None
         elif padding_mode == 'left':
             nleft = None
-            nright = -abs(diff)
+            nright = int(-abs(diff))
         else:
-            nleft = abs(np.floor(diff / 2.))
-            nright = -abs(np.ceil(diff / 2.))
+            nleft = int(abs(np.floor(diff / 2.)))
+            nright = int(-abs(np.ceil(diff / 2.)))
         if nleft == 0:
             nleft = None
         if nright == 0:
