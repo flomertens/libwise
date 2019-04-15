@@ -10,16 +10,23 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name = 'libwise',
-    version = '%s' % libwise.get_version(),
-    description = 'Various utilities for the WISE package',
-    url = 'https://github.com/flomertens/libwise',
-    author = 'Florent Mertens',
-    author_email = 'flomertens@gmail.com',
+    name='libwise',
+    version='%s' % libwise.get_version(),
+    description='Various utilities for the WISE package',
+    url='https://github.com/flomertens/libwise',
+    author='Florent Mertens',
+    author_email='flomertens@gmail.com',
     license='GPL2',
-
     include_package_data=True,
     packages=find_packages(),
-    scripts=glob.glob('scripts/*')
+    scripts=glob.glob('scripts/*'),
+    install_requires=[
+        'numpy',
+        'scipy',
+        'scikit-image',
+        'astropy',
+        'matplotlib',
+        'pyregion',
+        'uncertainties',
+        'pymorph']
 )
-
