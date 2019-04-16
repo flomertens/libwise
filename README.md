@@ -12,7 +12,7 @@ You should be able to install libwise using pip or conda:
 
 or
 
-    conda install -c flomertens libwise
+    conda install -c flomertens -c conda-forge libwise cython dask
 
 Alternatively, to install libwise globally:
 
