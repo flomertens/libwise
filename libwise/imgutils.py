@@ -15,6 +15,7 @@ import copy
 import imghdr
 import decimal
 import datetime
+import pkg_resources
 import numpy as np
 import PIL.Image
 
@@ -30,7 +31,7 @@ from astropy.time import TimeDelta
 
 import matplotlib.ticker as mticker
 
-RESSOURCE_PATH = os.path.join(os.path.dirname(__file__), 'ressource')
+RESSOURCE_PATH = 'ressource'
 
 import nputils
 import signalutils
@@ -206,7 +207,7 @@ def ellipsoide(size, a, b=None):
 
 
 def galaxy():
-    gif = PIL.Image.open(GALAXY_GIF_PATH)
+    gif = PIL.Image.open(pkg_resources.resource_stream(__name__, GALAXY_GIF_PATH))
     return np.array(list(gif.getdata())).reshape(256, 256)
 
 

@@ -1,3 +1,5 @@
+import pkg_resources
+
 try:
     __import__('PyQt5')
     use_pyqt5 = True
@@ -38,12 +40,12 @@ def subplots_replayable(plt_fct, *args):
     window = BaseFigureWindow(figure=figure)
     window.show()
 
-    return figure    
+    return figure
 
 
 class Cursor(QtCore.QObject):
 
-    cursorMoved = QtCore.pyqtSignal(list) 
+    cursorMoved = QtCore.pyqtSignal(list)
 
     def __init__(self, ax, figure, other_axs=[]):
         QtCore.QObject.__init__(self)
@@ -191,7 +193,7 @@ class AbstractTwoPointsRequest(object):
                 self.init_line()
                 self.canvas.restore_region(self.background)
                 self.canvas.update()
-            except:
+            except Exception:
                 print "Issue clearing"
                 pass
 
@@ -391,7 +393,7 @@ class PlotImageStats(AbstractTwoPointsRequest):
                     i0 = np.where(x >= x0)[0][0]
                     fct_index2coord = lambda index: x[i0 + index[0]]
                     self.stats_window.add_data(self.axes, data, str(artist), fct_index2coord)
-                except:
+                except Exception:
                     pass
 
         if not self.stats_window.has_data():
@@ -514,7 +516,7 @@ class BaseFigureWindow(uiutils.UI):
             figure.navigation = ExtendedNavigationToolbar(figure.canvas, self)
         else:
             figure.navigation = NavigationToolbar(figure.canvas, self)
-# 
+#
         self.layout().addWidget(figure.canvas)
         self.layout().addWidget(figure.navigation)
         self.figure.canvas.draw()
@@ -661,10 +663,10 @@ class ExtendedNavigationToolbar(NavigationToolbar):
 
     def __init__(self, canvas, window, profile=True):
         self.toolitems = list(self.toolitems)
-        self.toolitems.insert(6, ('Profile', 'Get the profile of a line in an image', 
-            os.path.join(imgutils.RESSOURCE_PATH, "profile"), 'profile'))
-        self.toolitems.insert(7, ('Stats', 'Get statistics on a portion of an image/line', 
-            os.path.join(imgutils.RESSOURCE_PATH, "stats"), 'stats'))
+        self.toolitems.insert(6, ('Profile', 'Get the profile of a line in an image',
+                                  os.path.join(imgutils.RESSOURCE_PATH, "profile"), 'profile'))
+        self.toolitems.insert(7, ('Stats', 'Get statistics on a portion of an image/line',
+                                  os.path.join(imgutils.RESSOURCE_PATH, "stats"), 'stats'))
         NavigationToolbar.__init__(self, canvas, window)
         self._actions['profile'].setCheckable(True)
         self._actions['stats'].setCheckable(True)
@@ -673,8 +675,10 @@ class ExtendedNavigationToolbar(NavigationToolbar):
         self.toogle_off_all_active()
 
     def _icon(self, name):
-        if name.startswith(os.path.sep):
-            return QtGui.QIcon(name)
+        if name.startswith(imgutils.RESSOURCE_PATH):
+            img = QtGui.QImage()
+            img.loadFromData(pkg_resources.resource_string(imgutils.__name__, name))
+            return QtGui.QIcon(QtGui.QPixmap.fromImage(img))
         return NavigationToolbar._icon(self, name)
 
     def _update_buttons_checked(self):
@@ -835,7 +839,7 @@ class PresetTreeModel(uiutils.CustomModel):
     def flags(self, index):
         if not index.isValid():
             return 0
-        if index.column() == 2: 
+        if index.column() == 2:
             return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
@@ -883,10 +887,10 @@ class TreeQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
 
 class PresetEditor(uiutils.UI):
 
-    changed = QtCore.pyqtSignal() 
+    changed = QtCore.pyqtSignal()
 
     def __init__(self, preset, parent):
-        uiutils.UI.__init__(self, 400, 350, "Preset Editor: %s" % preset.get_name(), 
+        uiutils.UI.__init__(self, 400, 350, "Preset Editor: %s" % preset.get_name(),
                             parent=parent, window_flags=QtCore.Qt.Dialog)
 
         self.preset = preset
@@ -898,8 +902,8 @@ class PresetEditor(uiutils.UI):
         vbox = QtGui.QVBoxLayout()
         self.setLayout(vbox)
 
-        self.tree = QtGui.QTreeView()  
-        self.tree.setModel(self.model)  
+        self.tree = QtGui.QTreeView()
+        self.tree.setModel(self.model)
         vbox.addWidget(self.tree)
 
         ctl = QtGui.QHBoxLayout()
@@ -947,8 +951,8 @@ class PresetEditor(uiutils.UI):
         return False
 
     def on_save_clicked(self, bn):
-        name, ok = QtGui.QInputDialog.getText(self, "Preset name", 
-            "Enter the preset name:", text=self.preset.get_name())
+        name, ok = QtGui.QInputDialog.getText(self, "Preset name",
+                                              "Enter the preset name:", text=self.preset.get_name())
         if ok and len(name) > 0:
             self.preset.set_name(name)
             self.preset.save()
@@ -1087,7 +1091,7 @@ class SaveFigure(uiutils.UI):
 
         figureoptions.figure_edit(axes, self)
         self.update(False)
-    
+
     def on_subplot_clicked(self, bn):
         self.figure.navigation.configure_subplots()
 
@@ -1124,7 +1128,7 @@ class SaveFigure(uiutils.UI):
 class FigureStack(uiutils.UI, BaseFigureStack):
 
     def __init__(self, title="Figure Stack", fixed_aspect_ratio=False, **kwargs):
-        BaseFigureStack.__init__(self, title=title, 
+        BaseFigureStack.__init__(self, title=title,
                                  fixed_aspect_ratio=fixed_aspect_ratio, **kwargs)
         uiutils.UI.__init__(self, 800, 500, title, window_flags=QtCore.Qt.Window)
         self.window_title = title
@@ -1285,6 +1289,7 @@ class FigureStack(uiutils.UI, BaseFigureStack):
             self.start()
         else:
             QtGui.QWidget.show(self)
+
 
 if __name__ == '__main__':
     editor = PresetEditor(presetutils.RcPreset.load('display_v2'), None)
