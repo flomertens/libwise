@@ -1,12 +1,15 @@
 import os
+import glob
 import appdirs
 import matplotlib
 
 import nputils
 
+import pkg_resources
+
 RC_DEFAULTS = matplotlib.RcParams(matplotlib.rcParams.copy())
 
-DEFAULT_PRESETS_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'presets')
+DEFAULT_PRESETS_PATH = 'presets'
 
 USER_PRESETS_PATH = appdirs.user_data_dir('libwise')
 
@@ -23,22 +26,34 @@ def set_rc_preset(preset_name, kargs={}):
 def set_color_cycles(colors):
     if mpl_1_5:
         matplotlib.rcParams["axes.prop_cycle"] = matplotlib.cycler('color', colors)
-    else:    
+    else:
         matplotlib.rcParams["axes.color_cycle"] = colors
+
+
+def get_all_user_presets_names():
+    return [os.path.basename(k) for k in glob.glob(os.path.join(USER_PRESETS_PATH, '*.preset'))]
+
+
+def get_all_default_presets_names():
+    return pkg_resources.resource_listdir(__name__, 'presets')
 
 
 def get_all_presets():
     presets_list = dict()
-    for path in [DEFAULT_PRESETS_PATH, USER_PRESETS_PATH]:
-        if not os.path.exists(path):
-            continue
-        for file in os.listdir(path):
-            if file.endswith(".preset"):
-                try:
-                    preset = RcPreset.load(file)
-                    presets_list[preset.get_name()] = preset
-                except Exception, e:
-                    print "Error reading %s: %s" % (file, e)
+    for file_name in get_all_default_presets_names():
+        try:
+            preset = RcPreset._load_default(file_name)
+            presets_list[preset.get_name()] = preset
+        except Exception, e:
+            print "Error reading %s: %s" % (file_name, e)
+
+    for file_name in get_all_user_presets_names():
+        try:
+            preset = RcPreset._load_user(file_name)
+            presets_list[preset.get_name()] = preset
+        except Exception, e:
+            print "Error reading %s: %s" % (file_name, e)
+
     return nputils.get_values_sorted_by_keys(presets_list)
 
 
@@ -47,7 +62,7 @@ def print_all_rc_keys():
     for key, value in matplotlib.rcParams.items():
         if "." in key:
             a, b = key.split(".", 1)
-            if not a in conf:
+            if a not in conf:
                 conf[a] = []
             conf[a].append([b, value])
 
@@ -83,7 +98,7 @@ class RcPreset(object):
                     item = item[1:]
                 value.append(item.strip('\'" '))
         if mpl_1_5 and key == 'axes.color_cycle':
-            key = 'axes.prop_cycle' 
+            key = 'axes.prop_cycle'
             value = matplotlib.cycler('color', value)
         return key, value
 
@@ -103,7 +118,7 @@ class RcPreset(object):
         families = set()
         for key, value in self.get_all():
             group, setting = key.split('.', 1)
-            if not group in RcPreset.group_blacklist:
+            if group not in RcPreset.group_blacklist:
                 families.add(group)
         return sorted(list(families))
 
@@ -160,28 +175,43 @@ class RcPreset(object):
         return "%s.preset" % preset_name
 
     @staticmethod
+    def _load_stream(preset_name, fd_or_stream):
+        if preset_name.endswith(".preset"):
+            preset_name = preset_name[:-len(".preset")]
+
+        preset = RcPreset(preset_name)
+        for line in fd_or_stream.readlines():
+            key, value = line.split(':', 1)
+            key = key.strip()
+            value = value.strip()
+            preset.set_key(key, value)
+
+        return preset
+
+    @staticmethod
+    def _load_default(file_name):
+        stream = pkg_resources.resource_stream(__name__, os.path.join('presets', file_name))
+        return RcPreset._load_stream(file_name, stream)
+
+    @staticmethod
+    def _load_user(file_name):
+        with open(os.path.join(USER_PRESETS_PATH, file_name)) as fd:
+            return RcPreset._load_stream(file_name, fd)
+
+    @staticmethod
     def load(preset_name):
         if preset_name.endswith(".preset"):
             filename = preset_name
-            preset_name = preset_name[:-len(".preset")]
         else:
             filename = RcPreset.get_filename(preset_name)
-        path = None
-        for presets_path in [USER_PRESETS_PATH, DEFAULT_PRESETS_PATH]:
-            path = os.path.join(presets_path, filename)
-            if os.path.isfile(path):
-                break
-        if path is None:
+
+        if filename in get_all_user_presets_names():
+            return RcPreset._load_user(filename)
+        elif filename in get_all_default_presets_names():
+            return RcPreset._load_default(filename)
+        else:
             print "Preset name '%s' not found" % preset_name
             return None
-        preset = RcPreset(preset_name)
-        with open(path) as fd:
-            for line in fd.readlines():
-                key, value = line.split(':', 1)
-                key = key.strip()
-                value = value.strip()
-                preset.set_key(key, value)
-        return preset
 
     def save(self):
         filename = RcPreset.get_filename(self.name)
