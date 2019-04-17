@@ -6,7 +6,7 @@ Collection of utilities to handle plotting, wavelet transform, graphical user in
 Installation
 ------------
 
-You should be able to install libwise using pip or conda:
+You should be able to install libwise using pip or conda (note that wise/libwise is python 2 only):
 
     pip install libwise
 
